@@ -1,0 +1,68 @@
+import { BeadType } from './types';
+
+export const BEAD_LIBRARY: BeadType[] = [
+  {
+    id: 'clear-quartz-6mm',
+    name: '净体白水晶',
+    type: 'crystal',
+    size: 6,
+    price: 3.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'clear-quartz-8mm',
+    name: '净体白水晶',
+    type: 'crystal',
+    size: 8,
+    price: 5.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'clear-quartz-10mm',
+    name: '净体白水晶',
+    type: 'crystal',
+    size: 10,
+    price: 10.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'clear-quartz-12mm',
+    name: '净体白水晶',
+    type: 'crystal',
+    size: 12,
+    price: 15.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'milky-quartz-8mm',
+    name: '奶白晶',
+    type: 'crystal',
+    size: 8,
+    price: 4.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'milky-quartz-10mm',
+    name: '奶白晶',
+    type: 'crystal',
+    size: 10,
+    price: 8.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'amethyst-8mm',
+    name: '紫水晶',
+    type: 'crystal',
+    size: 8,
+    price: 6.0,
+    image: '/beads/placeholder.svg',
+  },
+  {
+    id: 'rose-quartz-8mm',
+    name: '粉水晶',
+    type: 'crystal',
+    size: 8,
+    price: 5.0,
+    image: '/beads/placeholder.svg',
+  },
+];
