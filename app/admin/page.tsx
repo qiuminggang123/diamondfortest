@@ -34,7 +34,36 @@ export default function AdminPage() {
       if (!file) return;
       const reader = new FileReader();
       reader.onloadend = () => {
-          setNewBead({...newBead, image: reader.result as string});
+          const result = reader.result as string;
+          
+           // Calculate Dominant Color
+           const img = new Image();
+           img.onload = () => {
+               const canvas = document.createElement('canvas');
+               const ctx = canvas.getContext('2d');
+               if (ctx) {
+                   canvas.width = 50;
+                   canvas.height = 50;
+                   ctx.drawImage(img, 0, 0, 50, 50);
+                   const imageData = ctx.getImageData(0, 0, 50, 50);
+                   let r = 0, g = 0, b = 0;
+                   for (let i = 0; i < imageData.data.length; i += 4) {
+                       r += imageData.data[i];
+                       g += imageData.data[i + 1];
+                       b += imageData.data[i + 2];
+                   }
+                   const count = imageData.data.length / 4;
+                   r = Math.floor(r / count);
+                   g = Math.floor(g / count);
+                   b = Math.floor(b / count);
+                   const hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                   
+                   setNewBead(prev => ({...prev, image: result, dominantColor: hex}));
+               } else {
+                   setNewBead(prev => ({...prev, image: result}));
+               }
+           };
+           img.src = result;
       };
       reader.readAsDataURL(file);
   };
@@ -53,7 +82,7 @@ export default function AdminPage() {
       } else {
           // Add new
           const id = 'custom-' + Date.now();
-          addToLibrary({ ...newBead, id });
+          addToLibrary({ ...newBead, id } as BeadType); // Cast to BeadType
           showToast('已添加至素材库', 'success');
           resetForm();
       }
@@ -66,7 +95,8 @@ export default function AdminPage() {
           type: item.type,
           size: item.size,
           price: item.price,
-          image: item.image
+          image: item.image,
+          dominantColor: item.dominantColor // Preserve dominant color
       });
       // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -79,7 +109,8 @@ export default function AdminPage() {
         type: categories.length > 2 ? categories[2].id : 'other', // Default to first proper category if avail
         size: 10,
         price: 10,
-        image: ''
+        image: '',
+        dominantColor: undefined
       });
   };
 

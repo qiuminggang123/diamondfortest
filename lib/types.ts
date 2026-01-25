@@ -5,6 +5,7 @@ export interface BeadType {
   type: string;
   size: number; // in mm
   price: number;
+  dominantColor?: string; // Optional: Calculated dominant color for UI
 }
 
 export interface Category {

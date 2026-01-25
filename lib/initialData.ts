@@ -1,79 +1,70 @@
 ﻿import { BeadType } from './types';
 
 // Helper to create simple SVG textures
-const createBeadSVG = (color1: string, color2: string, stringColor: string = '#999999') => {
+const createBeadSVG = (color1: string, color2: string, stringOpacity: number = 1.0) => {
   const svg = `
   <svg width="200" height="200" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <!-- Volume Shadow Gradient (Dark Edges) -->
-      <radialGradient id="sphereVolume" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-         <stop offset="60%" style="stop-color:${color2};stop-opacity:0" />
-         <stop offset="100%" style="stop-color:${color2};stop-opacity:0.4" />
+      <!-- 1. Volume Shading: Smoother, more natural gradient -->
+      <!-- Simulates the thickness of the crystal. Light comes from Top-Right. -->
+      <radialGradient id="sphereVolume" cx="35%" cy="35%" r="75%" fx="35%" fy="35%">
+         <stop offset="50%" style="stop-color:${color1};stop-opacity:0" /> <!-- Clearer center -->
+         <stop offset="85%" style="stop-color:${color2};stop-opacity:0.6" /> <!-- Natural edging -->
+         <stop offset="100%" style="stop-color:${color2};stop-opacity:0.85" />
       </radialGradient>
 
-      <!-- Inner Caustic Glow (Focuses light at bottom-left) -->
-      <radialGradient id="innerGlow" cx="50%" cy="50%" r="48%" fx="35%" fy="65%">
-        <stop offset="0%" style="stop-color:white;stop-opacity:0.3" />
-        <stop offset="60%" style="stop-color:${color1};stop-opacity:0.1" />
-        <stop offset="100%" style="stop-color:${color1};stop-opacity:0" />
-      </radialGradient>
-
-      <!-- 1. Borehole Gradient: Frosted White with subtle shadow edges -->
-       <linearGradient id="borehole" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#AAAAAA" stop-opacity="0.3"/> <!-- Shadow Edge -->
-        <stop offset="25%" stop-color="#FFFFFF" stop-opacity="0.2"/>
-        <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.0"/> <!-- Hollow Center -->
-        <stop offset="75%" stop-color="#FFFFFF" stop-opacity="0.2"/>
-        <stop offset="100%" stop-color="#AAAAAA" stop-opacity="0.3"/> <!-- Shadow Edge -->
+      <!-- 2. Borehole Channel: Glassy Tunnel -->
+      <linearGradient id="borehole" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color2}" stop-opacity="0.5"/>   <!-- Top Wall Shadow -->
+        <stop offset="30%" stop-color="${color2}" stop-opacity="0.2"/> 
+        <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.15"/>   <!-- Clear Center -->
+        <stop offset="70%" stop-color="${color2}" stop-opacity="0.2"/>
+        <stop offset="100%" stop-color="${color2}" stop-opacity="0.5"/>  <!-- Bottom Wall Shadow -->
       </linearGradient>
 
-      <!-- 2. The Elastic Cord: Pure bright white string (#FFFFFF) -->
+      <!-- 3. The Cord: Softer, embedded look -->
        <linearGradient id="cord" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>   
-        <stop offset="40%" stop-color="#FFFFFF" stop-opacity="1"/>   <!-- Pure Bright White Core -->
-        <stop offset="60%" stop-color="#FFFFFF" stop-opacity="1"/>
-        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.9"/> 
+        <stop offset="0%" stop-color="#E0E0E0" stop-opacity="0.9"/>   
+        <stop offset="50%" stop-color="#FFFFFF" stop-opacity="1"/>     <!-- Core Highlight -->
+        <stop offset="100%" stop-color="#E0E0E0" stop-opacity="0.9"/> 
        </linearGradient>
+
+      <!-- 4. Caustic Spot: Natural light glowing through the bottom-left -->
+      <radialGradient id="causticSpot" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+         <stop offset="0%" style="stop-color:white;stop-opacity:0.5" /> <!-- Soft Bright Core -->
+         <stop offset="60%" style="stop-color:${color1};stop-opacity:0.2" />
+         <stop offset="100%" style="stop-color:${color1};stop-opacity:0" />
+      </radialGradient>
       
-      <!-- 3. Refraction Glint: A sharp highlight running along the hole (Glass tube effect) -->
-      <linearGradient id="refractionGlint" x1="0" y1="0" x2="0" y2="1">
-         <stop offset="0%" stop-color="white" stop-opacity="0"/>
-         <stop offset="10%" stop-color="white" stop-opacity="0.6"/> <!-- Stronger Top Glint -->
-         <stop offset="30%" stop-color="white" stop-opacity="0"/>
-         <stop offset="70%" stop-color="white" stop-opacity="0"/>
-         <stop offset="90%" stop-color="white" stop-opacity="0.4"/> <!-- Bottom Glint -->
-         <stop offset="100%" stop-color="white" stop-opacity="0"/>
-      </linearGradient>
+      <!-- 5. Blur Filter for internal refractions -->
+      <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" />
+      </filter>
     </defs>
     
-    <!-- LAYER 0: OCCLUSION BASE (Adjusted for transparency) -->
-    <!-- Solid color base opacity 0.95: High enough to hide stage string, but allows slight blending -->
-    <circle cx="50" cy="50" r="49.5" fill="${color1}" fill-opacity="0.95" />
+    <!-- A. BASE GEMS (Main Body) -->
+    <!-- Slightly translucent to allow light interaction -->
+    <circle cx="50" cy="50" r="49.5" fill="${color1}" fill-opacity="0.85" />
 
-    <!-- LAYER 0.5: DARK CHANNEL BACKING (CRITICAL FOR CONTRAST) -->
-    <!-- This simulates the "shadow" inside the drilled hole. -->
-    <!-- Without this, the white string disappears against the light bead color. -->
-    <rect x="0" y="40" width="100" height="20" fill="#222222" fill-opacity="0.25" />
+    <!-- B. BOREHOLE CHANNEL (The internal tunnel) -->
+    <!-- A subtle dark band representing the hole through the sphere -->
+    <rect x="-10" y="41" width="120" height="18" fill="url(#borehole)" />
 
-    <!-- LAYER 1: BACK FACET -->
-    <circle cx="50" cy="50" r="49" fill="${color2}" fill-opacity="0.15" />
+    <!-- C. INTERNAL REFLECTIONS (Crossing Light Paths) -->
+    <!-- Subtle curved lines suggesting internal refraction surfaces -->
+    <path d="M -10 42 Q 50 35 110 42" stroke="white" stroke-width="1" stroke-opacity="0.4" fill="none" filter="url(#softBlur)"/>
+    <path d="M -10 58 Q 50 65 110 58" stroke="white" stroke-width="1" stroke-opacity="0.4" fill="none" filter="url(#softBlur)"/>
 
-    <!-- LAYER 2: THE BOREHOLE CHANNEL (Drilled Hole) -->
-    <!-- Added slight grey edge for definition -->
-    <path d="M 0 50 L 100 50" stroke="url(#borehole)" stroke-width="14" stroke-linecap="butt" />
+    <!-- D. THE STRING -->
+    <line x1="-10" y1="50" x2="110" y2="50" stroke="url(#cord)" stroke-width="4" stroke-opacity="${stringOpacity}" />
 
-    <!-- LAYER 3: REFRACTION GLINT ON HOLE -->
-    <!-- Makes the hole look like a glass tube. -->
-    <path d="M 0 50 L 100 50" stroke="url(#refractionGlint)" stroke-width="14" stroke-linecap="butt" />
+    <!-- E. LUMINOUS SIDE WALLS (Borehole Entry/Exit Glow) -->
+    <!-- Simulates light catching the rough edges of the drilled hole -->
+    <ellipse cx="6" cy="50" rx="3" ry="7" fill="white" fill-opacity="0.6" filter="url(#softBlur)"/>
+    <ellipse cx="94" cy="50" rx="3" ry="7" fill="white" fill-opacity="0.6" filter="url(#softBlur)"/>
 
-    <!-- LAYER 4: THE ELASTIC CORD -->
-    <!-- Pure White String. Slightly thicker for visibility. -->
-    <path d="M 0 50 L 100 50" stroke="url(#cord)" stroke-width="6" />
-
-    <!-- LAYER 6: INNER GLOW (Caustics) -->
-    <circle cx="50" cy="50" r="48" fill="url(#innerGlow)" />
-
-    <!-- LAYER 7: VOLUME SHADING (Edges) -->
+    <!-- G. VOLUME SHADOW (The 3D feel) -->
+    <!-- Standard shading to give roundness -->
     <circle cx="50" cy="50" r="49" fill="url(#sphereVolume)" />
 
   </svg>
@@ -82,12 +73,13 @@ const createBeadSVG = (color1: string, color2: string, stringColor: string = '#9
 };
 
 // Generate Textures updated to match screenshot tones
-// Screenshot tones are softer, more pastel/translucent
-const IMG_AMETHYST = createBeadSVG('#D7BDE2', '#884EA0'); // Soft Lavender -> Deep Purple
-const IMG_CITRINE = createBeadSVG('#F9E79F', '#D4AC0D'); // Pale Yellow -> Golden
-const IMG_CLEAR = createBeadSVG('#FDFFEF', '#BDC3C7'); // Warm White -> Light Grey (Clear)
-const IMG_ROSE = createBeadSVG('#FADBD8', '#E6B0AA'); // Pale Pink -> Soft Red
-const IMG_TEA = createBeadSVG('#EDBB99', '#873600'); // Soft Bronze -> Brown
+// EXTREMELY DEEP / HEAVY / SOLID TONES
+const IMG_AMETHYST = createBeadSVG('#6A1B9A', '#38006b'); // Deep Purple
+const IMG_CITRINE = createBeadSVG('#FBC02D', '#F57F17'); // Deep Gold
+const IMG_CLEAR = createBeadSVG('#ECEFF1', '#546E7A'); // Cool White / Greyish
+const IMG_ROSE = createBeadSVG('#F48FB1', '#880E4F'); // Deep Pink
+// Correcting Tea to Dark Brown/Black (Smokey Quartz)
+const IMG_TEA_REAL = createBeadSVG('#5D4037', '#3E2723'); 
 
 export const INITIAL_CATEGORIES = [
   { id: 'all', name: '全部' },
@@ -147,6 +139,6 @@ export const INITIAL_LIBRARY: BeadType[] = [
     type: 'tea',
     size: 10,
     price: 20,
-    image: IMG_TEA
+    image: IMG_TEA_REAL
   }
 ];

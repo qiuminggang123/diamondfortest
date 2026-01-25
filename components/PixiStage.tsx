@@ -1,223 +1,324 @@
 'use client';
 
-import { Stage, Container, Sprite, Graphics, useTick } from '@pixi/react';
+import { Stage, Container, Sprite, Graphics, Text, useTick, useApp } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 import { useStore } from '@/lib/store';
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { Bead, PIXELS_PER_MM } from '@/lib/types';
 
+// Palette for Average Color Calculation
+const BEAD_COLORS: Record<string, string> = {
+    crystal: '#E5E8E8', // Cool White
+    amethyst: '#9B59B6', // Purple
+    citrine: '#F4D03F',  // Gold/Yellow
+    rose: '#F1948A',     // Pink
+    tea: '#D35400',      // Brown/Bronze
+    default: '#D4AC0D'   // Default Gold if unknown
+};
+
 // Z-Index Layers
+const Z_LOGO = 5;
 const Z_SHADOW = 10;
 const Z_STRING = 20;
 const Z_BODY = 30;
+const Z_DRAG = 100; // Highest priority for dragging
 
-// Unified Component controlling both Shadow and Body
-// This ensures they share the exact same 'position' state, eliminating synchronization jitter.
-const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale }: { bead: Bead; radius: number, stageWidth: number, stageHeight: number, globalScale: number }) => {
-    const containerRef = useRef<PIXI.Container>(null);
+// Helper: Linear Desaturation (mix with grayscale)
+const desaturate = (hex: string, saturation: number = 0.5): string => {
+    const c = parseInt(hex.replace('#', ''), 16);
+    const r = (c >> 16) & 0xFF;
+    const g = (c >> 8) & 0xFF;
+    const b = c & 0xFF;
     
-    const startSpawnY = stageHeight / 2 + 100; 
+    // Standard luminance weights
+    const gray = r * 0.3 + g * 0.59 + b * 0.11;
     
-    // Fixed Spawn Position (Stage Bottom-Left):
-    // Beads fly in from the bottom-left corner of the screen.
-    // They fly fast initially and slow down as they reach their target (Lerp).
-    // Adjust spawn point based on scale so it always starts off-screen or at edge relative to the zoomed container
+    const newR = Math.round(r * saturation + gray * (1 - saturation));
+    const newG = Math.round(g * saturation + gray * (1 - saturation));
+    const newB = Math.round(b * saturation + gray * (1 - saturation));
+    
+    return `#${((1 << 24) + (newR << 16) + (newG << 8) + newB).toString(16).slice(1)}`;
+};
+
+// Unified Component controlling both Shadow and Body with optimized Physics (Ref-based) to prevent jitter
+const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale, onDrop }: { bead: Bead; radius: number, stageWidth: number, stageHeight: number, globalScale: number, onDrop: (id: string, x: number, y: number) => void }) => {
+    const app = useApp();
+    const shadowContainerRef = useRef<PIXI.Container>(null);
+    const bodyContainerRef = useRef<PIXI.Container>(null);
+    const spriteRef = useRef<PIXI.Sprite>(null); // For rotating the texture independently of the highlight
+    
+    // Initial Spawn Position
     const spawnX = (-stageWidth / 2 + 50) / globalScale; 
     const spawnY = (stageHeight / 2 - 50) / globalScale; 
     
-    // Joint Position State
-    const [position, setPosition] = useState({ x: spawnX, y: spawnY }); 
-    const [visualRotation, setVisualRotation] = useState(0);
+    // Physics State (Refs for performance - reduces React renders @ 60fps)
+    const physicsState = useRef({
+        x: spawnX,
+        y: spawnY,
+        vx: 0,
+        vy: 0,
+        vr: 0,
+        visualRotation: 0
+    });
 
-    const targetPos = { x: bead.x || 0, y: bead.y || 0 };
-    const removeBead = useStore((state) => state.removeBead);
-    
     const isDragging = useRef(false);
+    const [isDraggingState, setIsDraggingState] = useState(false); // Only for cursor/z-index updates
     const [cursor, setCursor] = useState('pointer');
 
-    // Drag State
-    const [dragPosition, setDragPosition] = useState<{x:number, y:number} | null>(null);
-
-    // Physics / Animation Loop
-    useTick((delta) => {
-        if (isDragging.current || dragPosition) return;
-
-        // "Cannon Shot" Logic (Restored to Smooth Easing)
-        // Simple linear interpolation to the target slot.
-        const speed = 0.15; // Snappy speed
-
-        const dx = targetPos.x - position.x;
-        const dy = targetPos.y - position.y;
+    const targetPos = { x: bead.x || 0, y: bead.y || 0 };
+    
+    // --- Optimized Filters (Memoized with Padding) ---
+    // Fixes "square artifact" by adding padding to avoid clipping
+    const filters = useMemo(() => {
+        const shadow = new PIXI.BlurFilter(2.5, 4);
+        shadow.padding = 30; // Prevent clipping
         
-        const targetRot = bead.rotation || 0;
+        const caustic = new PIXI.BlurFilter(6, 4);
+        caustic.padding = 30;
 
-        // If very close, snap to exact position
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
-            if (position.x !== targetPos.x || position.y !== targetPos.y) {
-                 setPosition({ x: targetPos.x, y: targetPos.y });
-            }
-            if (visualRotation !== targetRot) {
-                 setVisualRotation(targetRot);
-            }
-        } else {
-             // Fly towards target
-             const nextX = position.x + dx * speed;
-             const nextY = position.y + dy * speed;
+        const highlight = new PIXI.BlurFilter(0.8, 4);
+        highlight.padding = 20; // Essential for sharp highlights without square edges
 
-             setPosition({ x: nextX, y: nextY });
-             
-             // UNIFIED TANGENT ALIGNMENT: 
-             // Always align strictly to the tangent of the circle centered at (0,0) passing through current position.
-             // This ensures smooth, continuous rotation adjustment during both flight and loop placement.
-             const dynamicRot = Math.atan2(nextY, nextX) + Math.PI / 2;
-             setVisualRotation(dynamicRot);
+        return {
+            shadow: [shadow],
+            caustic: [caustic],
+            highlight: [highlight]
+        };
+    }, []);
+
+    // --- Global Drag Handlers ---
+    const handleGlobalDragMove = useCallback((event: any) => {
+        if (!isDragging.current || !bodyContainerRef.current?.parent) return;
+        const newPos = event.data.getLocalPosition(bodyContainerRef.current.parent);
+        
+        // Direct Manipulation
+        if (bodyContainerRef.current) bodyContainerRef.current.position.set(newPos.x, newPos.y);
+        if (shadowContainerRef.current) shadowContainerRef.current.position.set(newPos.x, newPos.y);
+        
+        // Sync Physics
+        physicsState.current.x = newPos.x;
+        physicsState.current.y = newPos.y;
+    }, []);
+
+    const handleGlobalDragEnd = useCallback((event: any) => {
+        if (!isDragging.current) return;
+        
+        isDragging.current = false;
+        setIsDraggingState(false);
+        setCursor('pointer');
+        
+        app.stage.off('pointermove', handleGlobalDragMove);
+        app.stage.off('pointerup', handleGlobalDragEnd);
+        app.stage.off('pointerupoutside', handleGlobalDragEnd);
+
+        const parent = bodyContainerRef.current?.parent;
+        if (parent) {
+            const dropPos = event.data.getLocalPosition(parent);
+            onDrop(bead.instanceId, dropPos.x, dropPos.y);
+        }
+    }, [app, bead.instanceId, onDrop, handleGlobalDragMove]);
+
+    // --- Interaction Handlers ---
+    const onDragStart = useCallback((event: any) => {
+      event.stopPropagation(); 
+      isDragging.current = true;
+      setIsDraggingState(true);
+      setCursor('move');
+      
+      const startPos = event.data.getLocalPosition(bodyContainerRef.current?.parent);
+      
+      // Update Physics immediately
+      physicsState.current.x = startPos.x;
+      physicsState.current.y = startPos.y;
+      physicsState.current.vx = 0;
+      physicsState.current.vy = 0;
+      physicsState.current.vr = 0;
+
+      app.stage.eventMode = 'static';
+      app.stage.hitArea = app.screen;
+      app.stage.on('pointermove', handleGlobalDragMove);
+      app.stage.on('pointerup', handleGlobalDragEnd);
+      app.stage.on('pointerupoutside', handleGlobalDragEnd);
+
+    }, [app, handleGlobalDragMove, handleGlobalDragEnd]);
+
+    // Physics / Animation Loop (Runs every frame)
+    useTick((delta) => {
+        // Skip physics if dragging (controlled by mouse)
+        if (isDragging.current) return;
+
+        // INERTIA PHYSICS
+        // Adjusted for moderate "Q-bounce" (Balanced stiffness and damping)
+        const stiffness = 0.05 * delta; 
+        const damping = 0.75; 
+
+        // Position Physics
+        const tx = targetPos.x;
+        const ty = targetPos.y;
+        
+        const state = physicsState.current;
+
+        const fx = (tx - state.x) * stiffness;
+        const fy = (ty - state.y) * stiffness;
+
+        state.vx += fx;
+        state.vy += fy;
+        state.vx *= damping;
+        state.vy *= damping;
+
+        state.x += state.vx * delta;
+        state.y += state.vy * delta;
+
+        // Rolling Rotation
+        const speed = Math.sqrt(state.vx**2 + state.vy**2);
+        
+        const tr = bead.rotation || 0;
+        let diffRot = tr - state.visualRotation;
+        while (diffRot > Math.PI) diffRot -= 2 * Math.PI;
+        while (diffRot < -Math.PI) diffRot += 2 * Math.PI;
+
+        const fr = diffRot * stiffness;
+        state.vr += fr;
+        state.vr *= damping;
+        
+        if (speed > 1) {
+             state.vr += speed * 0.02 * (Math.random() > 0.5 ? 1 : -1); 
+        }
+
+        state.visualRotation += state.vr * delta;
+
+        // Snap to target if very close/slow
+        if (speed < 0.1 && Math.abs(state.vr) < 0.01 && Math.abs(tx - state.x) < 0.5 && Math.abs(ty - state.y) < 0.5) {
+             state.x = tx;
+             state.y = ty;
+             state.visualRotation = tr;
+        }
+
+        // Apply to PIXI Objects
+        if (bodyContainerRef.current) {
+            bodyContainerRef.current.position.set(state.x, state.y);
+        }
+        if (shadowContainerRef.current) {
+            shadowContainerRef.current.position.set(state.x, state.y);
+        }
+        if (spriteRef.current) {
+            spriteRef.current.rotation = state.visualRotation;
         }
     });
 
-    // Derived Render State
-    const renderX = dragPosition ? dragPosition.x : position.x;
-    const renderY = dragPosition ? dragPosition.y : position.y;
-    // When dragging, keep visual rotation; otherwise use animated rotation
-    const renderRotation = visualRotation;
-    
     const beadRadiusPx = (bead.size * PIXELS_PER_MM) / 2;
   
-    // --- Graphics Draw Functions ---
+    // --- Cached Draw Functions ---
     const drawShadow = useCallback((g: PIXI.Graphics) => {
       g.clear();
-      // 1. Base Shadow (Dark, Soft)
+      // Deep Contact Shadow
+      g.beginFill(0x000000, 0.8); 
+      g.drawEllipse(-beadRadiusPx * 0.15, beadRadiusPx * 0.15, beadRadiusPx * 0.7, beadRadiusPx * 0.6);
+      g.endFill();
+      // Diffused Cast Shadow
       g.beginFill(0x000000, 0.4); 
-      g.drawEllipse(0, 0, beadRadiusPx * 0.9, beadRadiusPx * 0.7);
+      g.drawEllipse(-beadRadiusPx * 0.4, beadRadiusPx * 0.4, beadRadiusPx * 0.9, beadRadiusPx * 0.7);
       g.endFill();
     }, [beadRadiusPx]);
 
-    // CAUSTIC EFFECT: A bright focused light spot inside the shadow
-    // Simulates light passing through the glass bead and focusing on the table.
     const drawCaustic = useCallback((g: PIXI.Graphics) => {
       g.clear();
-      // Bright "Caustic" Core
-      g.beginFill(0xFFFFFF, 0.3); // Semi-transparent white
-      g.drawEllipse(0, 0, beadRadiusPx * 0.4, beadRadiusPx * 0.3);
+      g.beginFill(0xFFFFFF, 0.6);
+      g.drawCircle(-beadRadiusPx * 0.2, beadRadiusPx * 0.2, beadRadiusPx * 0.35);
       g.endFill();
     }, [beadRadiusPx]);
   
     const drawHighlight = useCallback((g: PIXI.Graphics) => {
       g.clear();
-      
-      // 1. Fresnel / Rim Light (Edge Definition)
-      // Adds a subtle glass-like edge so it doesn't look like a flat sticker
-      g.lineStyle(1, 0xFFFFFF, 0.3);
-      g.drawCircle(0, 0, beadRadiusPx);
-      g.lineStyle(0); // Reset line
-
-      // 2. Main Specular Highlight (Top-Left)
-      // Direct reflection of the light source
-      g.beginFill(0xFFFFFF, 0.2); // Soft Glow
-      g.drawCircle(beadRadiusPx * 0.35, -beadRadiusPx * 0.35, beadRadiusPx * 0.25);
+      // Sharp Specular Dot (Top-Right)
+      g.beginFill(0xFFFFFF, 1.0); 
+      g.drawCircle(beadRadiusPx * 0.4, -beadRadiusPx * 0.4, beadRadiusPx * 0.15);
       g.endFill();
-      
-      g.beginFill(0xFFFFFF, 0.9); // Sharp Core
-      g.drawCircle(beadRadiusPx * 0.35, -beadRadiusPx * 0.35, beadRadiusPx * 0.1);
+      // Secondary Reflection
+      g.beginFill(0xFFFFFF, 0.4);
+      g.drawCircle(beadRadiusPx * 0.45, -beadRadiusPx * 0.45, beadRadiusPx * 0.25);
       g.endFill();
-
-      // 3. Secondary Internal Reflection (Bottom-Right)
-      // Light enters top-left, refracts, and hits the bottom-right inner wall.
-      // This is crucial for the "transparent gem" look.
-      g.beginFill(0xFFFFFF, 0.15); // Broad soft light
-      // Draw a crescent-like shape or soft circle at bottom right
-      g.drawCircle(-beadRadiusPx * 0.25, beadRadiusPx * 0.25, beadRadiusPx * 0.25);
-      g.endFill();
-      
-      // Add a smaller, brighter core for the internal bounce
-      g.beginFill(0xFFFFFF, 0.4); 
-      g.drawEllipse(-beadRadiusPx * 0.25, beadRadiusPx * 0.28, beadRadiusPx * 0.15, beadRadiusPx * 0.1);
-      g.endFill();
-
     }, [beadRadiusPx]);
   
-    // --- Interaction Handlers ---
-    const onDragStart = (event: any) => {
-      setCursor('move');
-      const startPos = event.data.getLocalPosition(containerRef.current?.parent);
-      setDragPosition(startPos);
-    };
-  
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onDragEnd = (event: any) => {
-      setCursor('pointer');
-      const parent = containerRef.current?.parent;
-      if (parent && dragPosition) {
-          const dropPos = event.data.getLocalPosition(parent);
-          // Calculate distance from center (0,0 is center in parent container)
-          const dist = Math.sqrt(dropPos.x * dropPos.x + dropPos.y * dropPos.y);
-          // If dragged too far from the bracelet ring, remove it
-          if (Math.abs(dist - radius) > beadRadiusPx * 2) { 
-              removeBead(bead.instanceId);
-          }
-      }
-      setDragPosition(null);
-    };
-  
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onDragMove = (event: any) => {
-      if (dragPosition) {
-        const newPos = event.data.getLocalPosition(containerRef.current?.parent);
-        setDragPosition(newPos);
-      }
-    };
+    // Aspect Ratio Logic
+    const [aspectRatio, setAspectRatio] = useState(1);
+    useEffect(() => {
+        if (!bead.image) return;
+        const tex = PIXI.Texture.from(bead.image);
+        if (tex.valid) {
+            setAspectRatio(tex.width / tex.height);
+        } else {
+            tex.once('update', () => {
+                 if(tex.width && tex.height) setAspectRatio(tex.width / tex.height);
+            });
+        }
+    }, [bead.image]);
 
-    // Stable filter instance
-    const STABLE_SHADOW_FILTER = useMemo(() => [new PIXI.BlurFilter(5)], []); // Reduced blur for lighter, cleaner look
-    const STABLE_CAUSTIC_FILTER = useMemo(() => [new PIXI.BlurFilter(2)], []); // Sharp blur for focused light
+    // Calculate fitted dimensions
+    const diameter = beadRadiusPx * 2;
+    let spriteWidth = diameter;
+    let spriteHeight = diameter;
+    if (aspectRatio > 1) { // Wide
+         spriteHeight = diameter / aspectRatio;
+    } else { // Tall
+         spriteWidth = diameter * aspectRatio;
+    }
   
     return (
       <>
-        {/* SHADOW LAYER (Moves in sync with Body) */}
+        {/* SHADOW LAYER */}
         <Container
-            position={[renderX, renderY]}
+            ref={shadowContainerRef}
             zIndex={Z_SHADOW}
+            // Initial Position for first render
+            x={physicsState.current.x}
+            y={physicsState.current.y}
         >
-            {/* Dark Cast Shadow */}
             <Graphics
                 draw={drawShadow}
-                filters={STABLE_SHADOW_FILTER} 
-                x={-beadRadiusPx * 0.2} 
-                y={beadRadiusPx * 0.25} 
+                filters={filters.shadow} 
+                x={-beadRadiusPx * 0.05} 
+                y={beadRadiusPx * 0.05} 
             />
-             {/* Caustic Light Spot (Bright Core) */}
             <Graphics
                 draw={drawCaustic}
-                filters={STABLE_CAUSTIC_FILTER}
-                blendMode={PIXI.BLEND_MODES.ADD} // Additive blending makes it glow
-                x={-beadRadiusPx * 0.2} 
-                y={beadRadiusPx * 0.25} 
+                filters={filters.caustic}
+                blendMode={PIXI.BLEND_MODES.ADD}
+                x={-beadRadiusPx * 0.05} 
+                y={beadRadiusPx * 0.05} 
             />
         </Container>
 
-        {/* BODY LAYER (Interactive) */}
+        {/* BODY LAYER */}
         <Container 
-            ref={containerRef}
-            position={[renderX, renderY]}
-            zIndex={Z_BODY}
+            ref={bodyContainerRef}
+            zIndex={isDraggingState ? Z_DRAG : Z_BODY}
             interactive={true}
             cursor={cursor}
-            pointerover={() => !dragPosition && setCursor('pointer')}
-            pointerout={() => !dragPosition && setCursor('default')}
+            pointerover={() => !isDragging.current && setCursor('pointer')}
+            pointerout={() => !isDragging.current && setCursor('default')}
             pointerdown={onDragStart}
-            pointerup={onDragEnd}
-            pointerupoutside={onDragEnd}
-            pointermove={onDragMove}
+            x={physicsState.current.x}
+            y={physicsState.current.y}
         >
             {bead.image && (
                 <Container>
                     <Sprite
+                        ref={spriteRef}
                         image={bead.image}
                         anchor={0.5}
-                        width={beadRadiusPx * 2}
-                        height={beadRadiusPx * 2}
-                        rotation={renderRotation}
+                        width={spriteWidth}
+                        height={spriteHeight}
+                        rotation={physicsState.current.visualRotation}
                     />
-                    <Graphics draw={drawHighlight} />
+                    
+                    {/* Highlights - Static relative to Bead Center (Don't rotate with bead texture) */}
+                    {Math.abs(aspectRatio - 1) < 0.1 && (
+                        <Graphics 
+                            draw={drawHighlight} 
+                            filters={filters.highlight}
+                        />
+                    )}
                 </Container>
             )}
         </Container>
@@ -234,7 +335,7 @@ const StringLoop = ({ targetRadius }: { targetRadius: number }) => {
     
     // Physics / Animation Loop for String scaling
     useTick(() => {
-         const speed = 0.15; // Match bead speed
+         const speed = 0.05; // Reduced from 0.15 for smoother animation
          
          const diff = targetRadius - currentRadius;
          // If difference is significant, interpolate
@@ -262,8 +363,20 @@ const StringLoop = ({ targetRadius }: { targetRadius: number }) => {
 
 // Separate Inner Content component to utilize useStore and pass props
 const PixiContent = ({ width, height, userZoom = 1 }: { width: number, height: number, userZoom?: number }) => {
-    const { beads, circumference } = useStore();
-    const targetRadius = (circumference * 10 * PIXELS_PER_MM) / (2 * Math.PI); 
+    const { beads, circumference, removeBead, moveBead } = useStore();
+    const targetRadius = (circumference * 10 * PIXELS_PER_MM) / (2 * Math.PI);
+
+    // Retrieve the correct font family for Cinzel from CSS variable
+    const [logoFontFamily, setLogoFontFamily] = useState(['serif']);
+    useEffect(() => {
+        const style = getComputedStyle(document.body);
+        const fontVar = style.getPropertyValue('--font-cinzel');
+        if (fontVar) {
+            // Clean up: '"__Cinzel_..."' -> '__Cinzel_...'
+            const clean = fontVar.replace(/"/g, '').split(',')[0].trim();
+            if (clean) setLogoFontFamily([clean, 'serif']);
+        }
+    }, []);
     
     // Auto-Scaling Logic
     const margin = 60; // Padding from screen edge
@@ -276,8 +389,123 @@ const PixiContent = ({ width, height, userZoom = 1 }: { width: number, height: n
     // Combine auto-fit scale with user zoom
     const finalScale = autoScale * userZoom;
 
+    // --- Dynamic Logo Gradient Logic ---
+    const logoFill = useMemo(() => {
+        // Default Silver/Grey Gradient (Coil color)
+        if (beads.length === 0) return ['#E0E5E5', '#BDC3C7']; 
+
+        // Collect all colors from beads
+        const colors = beads.map(bead => 
+            bead.dominantColor || BEAD_COLORS[bead.type] || BEAD_COLORS.default
+        );
+
+        // Reflect the palette
+        const uniqueColors = Array.from(new Set(colors));
+
+        // Desaturate colors to reduce vibrancy as requested
+        const desaturatedColors = uniqueColors.map(c => desaturate(c, 0.4)); // 0.4 saturation factor
+
+        if (desaturatedColors.length === 0) return ['#E0E5E5', '#BDC3C7'];
+        if (desaturatedColors.length === 1) return [desaturatedColors[0], desaturatedColors[0]];
+
+        return desaturatedColors;
+    }, [beads]);
+
+    const logoStyle = useMemo(() => new PIXI.TextStyle({
+        fontFamily: logoFontFamily, // Matches Header
+        fontSize: 36, 
+        fontWeight: 'bold', 
+        fill: logoFill, 
+        fillGradientType: PIXI.TEXT_GRADIENT.LINEAR_HORIZONTAL,
+        letterSpacing: 2,
+        dropShadow: false,
+        padding: 20, 
+    }), [logoFill, logoFontFamily]);
+
+    // Handle Drop Logic: Remove or Swap based on angles
+    const handleBeadDrop = useCallback((id: string, x: number, y: number) => {
+        const draggedBeadIndex = beads.findIndex(b => b.instanceId === id);
+        const draggedBead = beads[draggedBeadIndex];
+        if (!draggedBead) return;
+
+        const beadRadiusPx = (draggedBead.size * PIXELS_PER_MM) / 2;
+        const distFromCenter = Math.sqrt(x * x + y * y);
+
+        // 1. Remove Logic: Only if dragged OUTSIDE the bracelet ring (Outwards)
+        // Deletion Buffer: 1.5x bead radius outside target
+        if (distFromCenter > (targetRadius + beadRadiusPx * 1.5)) { 
+            removeBead(id);
+            return;
+        }
+
+        // GUARD: Ignore Drops "Too Far Inside" the ring (Center Void)
+        // If the bead is dropped way inside the loop (e.g. near the logo), don't trigger reorder.
+        // This prevents accidental shuffling when just moving near the center.
+        // Threshold: Allow a small gap inside the string (e.g., 1.2x bead radius gap from string)
+        const innerThreshold = targetRadius - beadRadiusPx * 2.2; 
+        if (distFromCenter < innerThreshold) {
+            return; // Too close to center, just snap back
+        }
+
+        // 2. Insert Logic: 判断拖拽点在圆环左半边还是右半边，决定顺/逆时针插入调整
+        const otherBeads = beads.filter(b => b.instanceId !== id);
+        if (otherBeads.length === 0) return;
+
+        // 拖拽点的角度
+        const dropAngle = Math.atan2(y, x);
+        const dx = Math.cos(dropAngle);
+        const dy = Math.sin(dropAngle);
+
+        // 判断左右半边：左半边（PI/2 到 3PI/2），右半边（-PI/2 到 PI/2）
+        // atan2范围[-PI, PI]，左半边 x<0，右半边 x>=0
+        const isLeftSide = x < 0;
+
+        let bestSlotIndex = -1;
+        let bestDot = isLeftSide ? -Infinity : -Infinity;
+        const N = otherBeads.length;
+        for (let i = 0; i < N; i++) {
+            const beadA = otherBeads[i];
+            const angleA = Math.atan2(beadA.y || 0, beadA.x || 0);
+            const beadB = otherBeads[(i + 1) % N];
+            const angleB = Math.atan2(beadB.y || 0, beadB.x || 0);
+            const midX = Math.cos(angleA) + Math.cos(angleB);
+            const midY = Math.sin(angleA) + Math.sin(angleB);
+            const len = Math.sqrt(midX*midX + midY*midY);
+            const gapVx = len > 0.001 ? midX / len : Math.cos(angleA + Math.PI/2);
+            const gapVy = len > 0.001 ? midY / len : Math.sin(angleA + Math.PI/2);
+            const dot = dx * gapVx + dy * gapVy;
+            if (isLeftSide) {
+                // 左半边，顺时针调整，找 dot 最大
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    bestSlotIndex = i + 1;
+                }
+            } else {
+                // 右半边，逆时针调整，找 dot 最大
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    bestSlotIndex = i + 1;
+                }
+            }
+        }
+        if (bestSlotIndex !== -1 && draggedBeadIndex !== -1) {
+            moveBead(draggedBeadIndex, bestSlotIndex);
+        }
+
+    }, [beads, targetRadius, removeBead, moveBead]);
+
     return (
         <Container x={width / 2} y={height / 2} sortableChildren={true} scale={finalScale}>
+            {/* 0. CENTER LOGO */}
+            <Text 
+                key={JSON.stringify(logoFill)} // Force update when gradient changes
+                text="AURA LOOP"
+                anchor={0.5}
+                style={logoStyle}
+                zIndex={Z_LOGO}
+                scale={0.5} 
+            />
+
             {/* 1. BEADS */}
             {beads.map((bead) => (
                 <AnimatedBead
@@ -287,6 +515,7 @@ const PixiContent = ({ width, height, userZoom = 1 }: { width: number, height: n
                     stageWidth={width}
                     stageHeight={height}
                     globalScale={finalScale}
+                    onDrop={handleBeadDrop}
                 />
             ))}
 

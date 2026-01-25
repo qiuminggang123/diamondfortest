@@ -1,4 +1,4 @@
-# 养个珠子 (Yang Ge Shi Tou)
+# AURA LOOP (Yang Ge Shi Tou)
 
 ## Project Description
 A custom bead bracelet design platform built with Next.js, Pixi.js, and Zustand. Users can customize bracelets by adding beads from a library, visualising them on a 2D stage with physics-like animations, and managing their design.

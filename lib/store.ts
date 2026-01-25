@@ -7,19 +7,26 @@ import { useUIStore } from './uiStore';
 
 interface AppState {
   beads: Bead[];
+  savedBeads: Bead[]; // Explicitly saved state
   library: BeadType[];
   categories: Category[];
   selectedBeadId: string | null;
   circumference: number; 
+  savedCircumference: number;
   totalPrice: number;
   
   addBead: (beadType: BeadType) => void;
   removeBead: (instanceId: string) => void;
   updateBeadPosition: (instanceId: string, x: number, y: number) => void;
+  swapBeads: (fromIndex: number, toIndex: number) => void;
+  moveBead: (fromIndex: number, toIndex: number) => void;
   recalculatePositions: () => void;
   selectBead: (instanceId: string | null) => void;
   reset: () => void;
   
+  saveDesign: () => void; // Manual save action
+  restoreDesign: () => void; // Load saved action
+
   addToLibrary: (item: BeadType) => void;
   removeFromLibrary: (id: string) => void;
   updateLibraryItem: (item: BeadType) => void;
@@ -33,10 +40,12 @@ export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       beads: [],
+      savedBeads: [],
       library: INITIAL_LIBRARY,
       categories: INITIAL_CATEGORIES,
       selectedBeadId: null,
       circumference: 12.0, 
+      savedCircumference: 12.0,
       totalPrice: 0, 
 
       addBead: (beadType) => {
@@ -91,6 +100,36 @@ export const useStore = create<AppState>()(
             b.instanceId === instanceId ? { ...b, x, y } : b
           )
         }));
+      },
+
+      swapBeads: (fromIndex, toIndex) => {
+        set((state) => {
+            const newBeads = [...state.beads];
+            if (fromIndex < 0 || fromIndex >= newBeads.length || toIndex < 0 || toIndex >= newBeads.length) return state;
+            
+            const temp = newBeads[fromIndex];
+            newBeads[fromIndex] = newBeads[toIndex];
+            newBeads[toIndex] = temp;
+            return { beads: newBeads };
+        });
+        get().recalculatePositions();
+      },
+
+      moveBead: (fromIndex, toIndex) => {
+        set((state) => {
+            const newBeads = [...state.beads];
+            // Bounds check
+            if (fromIndex < 0 || fromIndex >= newBeads.length || toIndex < 0 || toIndex >= newBeads.length) return state;
+            if (fromIndex === toIndex) return state;
+
+            // Remove from old position
+            const [movedBead] = newBeads.splice(fromIndex, 1);
+            // Insert at new position
+            newBeads.splice(toIndex, 0, movedBead);
+
+            return { beads: newBeads };
+        });
+        get().recalculatePositions();
       },
 
       recalculatePositions: () => {
@@ -161,6 +200,21 @@ export const useStore = create<AppState>()(
 
       reset: () => set({ beads: [], totalPrice: 0, circumference: 12.0, selectedBeadId: null }),
       
+      saveDesign: () => set((state) => ({ 
+        savedBeads: state.beads, 
+        savedCircumference: state.circumference 
+      })),
+
+      restoreDesign: () => set((state) => {
+          // Calculate price from saved beads
+          const price = state.savedBeads.reduce((sum, b) => sum + b.price, 0);
+          return {
+             beads: state.savedBeads,
+             circumference: state.savedCircumference || 12.0,
+             totalPrice: price
+          };
+      }),
+
       addToLibrary: (item) => set((state) => ({ library: [...state.library, item] })),
       removeFromLibrary: (id) => set((state) => ({ library: state.library.filter(i => i.id !== id) })),
       updateLibraryItem: (item) => set((state) => ({ 
@@ -174,14 +228,52 @@ export const useStore = create<AppState>()(
       })),
     }),
     {
-      name: 'diamond-store-v31', // Version bump to restore deleted library items
+      name: 'diamond-store-v39', // Revert to semi-transparency and external caustics
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         library: state.library, 
         categories: state.categories,
-        beads: state.beads, 
-        circumference: state.circumference 
+        savedBeads: state.savedBeads,
+        savedCircumference: state.savedCircumference
       }),
+      // Migration: Ensure library and existing beads get the new textures
+      onRehydrateStorage: (state) => {
+        return (hydratedState, error) => {
+           if (hydratedState) {
+               // 1. Force Reset Library to code-defined INITIAL_LIBRARY to get new Textures
+               // We only keep custom items (if any id is not in initial set)
+               const initialIds = new Set(INITIAL_LIBRARY.map(b => b.id));
+               const customItems = hydratedState.library ? hydratedState.library.filter(b => !initialIds.has(b.id)) : [];
+               
+               // Merge: New Initial Library + User Custom Items
+               const newLibrary = [...INITIAL_LIBRARY, ...customItems];
+               
+               // 2. Update active 'beads' on stage if they match standard types
+               // This fixes "old beads on stage" having old textures
+               const newBeads = hydratedState.beads ? hydratedState.beads.map(bead => {
+                   // Find matching prototype in new library
+                   // Note: 'bead.id' is a uuid instance, we need to match by 'bead.name' + 'bead.type' or similar if we don't store prototypeId
+                   // Since we don't store prototypeId strictly, we can try to match by name/type signature
+                   const prototype = INITIAL_LIBRARY.find(p => p.name === bead.name && p.type === bead.type && p.size === bead.size);
+                   if (prototype) {
+                       return { ...bead, image: prototype.image }; // Update texture
+                   }
+                   return bead;
+               }) : [];
+
+               // Apply updates
+               state.library = newLibrary;
+               if (newBeads.length > 0) state.beads = newBeads;
+               
+               // Also update Saved Designs
+               const newSavedBeads = hydratedState.savedBeads ? hydratedState.savedBeads.map(bead => {
+                   const prototype = INITIAL_LIBRARY.find(p => p.name === bead.name && p.type === bead.type && p.size === bead.size);
+                   return prototype ? { ...bead, image: prototype.image } : bead;
+               }) : [];
+               if (newSavedBeads.length > 0) state.savedBeads = newSavedBeads;
+           }
+        };
+      }
     }
   )
 );

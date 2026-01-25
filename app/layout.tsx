@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Cinzel, Anton } from "next/font/google"; // Import Anton
 import "./globals.css";
 import GlobalUI from "@/components/GlobalUI";
 
 const inter = Inter({ subsets: ["latin"] });
+const cinzel = Cinzel({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-cinzel" }); 
+const anton = Anton({ subsets: ["latin"], weight: ["400"], variable: "--font-anton" }); // Configure Anton
 
 export const metadata: Metadata = {
-  title: "养个珠子 - 手串定制",
+  title: "AURA LOOP - 手串定制",
   description: "定制属于你的独一无二的手串",
 };
 
@@ -19,7 +21,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body
         suppressHydrationWarning
-        className={`${inter.className} antialiased bg-gray-100`}
+        className={`${inter.className} ${cinzel.variable} ${anton.variable} antialiased bg-gray-100`}
       >
         <GlobalUI />
         {children}

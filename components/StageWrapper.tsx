@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 const PixiStage = dynamic(() => import('./PixiStage'), { 
   ssr: false,
-  loading: () => <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400">Loading Stage...</div>
+  loading: () => <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400">加载舞台中...</div>
 });
 
 export default function StageWrapper() {
