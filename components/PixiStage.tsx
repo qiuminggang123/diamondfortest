@@ -372,7 +372,7 @@ const StringLoop = ({ targetRadius }: { targetRadius: number }) => {
 }
 
 // Separate Inner Content component to utilize useStore and pass props
-const PixiContent = ({ width, height, userZoom = 1 }: { width: number, height: number, userZoom?: number }) => {
+const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: number, height: number, userZoom?: number, rotation?: number }) => {
     const { beads, circumference, removeBead, moveBead } = useStore();
     const targetRadius = (circumference * 10 * PIXELS_PER_MM) / (2 * Math.PI);
 
@@ -506,32 +506,31 @@ const PixiContent = ({ width, height, userZoom = 1 }: { width: number, height: n
 
     return (
         <Container x={width / 2} y={height / 2} sortableChildren={true} scale={finalScale}>
-            {/* 0. CENTER LOGO */}
+            {/* 0. CENTER LOGO（不旋转） */}
             <Text 
-                key={JSON.stringify(logoFill)} // Force update when gradient changes
+                key={JSON.stringify(logoFill)}
                 text="AURA LOOP"
                 anchor={0.5}
                 style={logoStyle}
                 zIndex={Z_LOGO}
                 scale={0.5} 
             />
-
-            {/* 1. BEADS */}
-            {beads.map((bead) => (
-                <AnimatedBead
-                    key={bead.instanceId} 
-                    bead={bead} 
-                    radius={targetRadius} 
-                    stageWidth={width}
-                    stageHeight={height}
-                    globalScale={finalScale}
-                    onDrop={handleBeadDrop}
-                />
-            ))}
-
-             {/* 2. STRING - Animated String Loop */}
-            <StringLoop targetRadius={targetRadius} />
-
+            {/* 1. BEADS和STRING整体旋转 */}
+            <Container rotation={rotation}>
+                {/* 先渲染手绳，zIndex最低 */}
+                <StringLoop targetRadius={targetRadius} />
+                {beads.map((bead) => (
+                    <AnimatedBead
+                        key={bead.instanceId} 
+                        bead={bead} 
+                        radius={targetRadius} 
+                        stageWidth={width}
+                        stageHeight={height}
+                        globalScale={finalScale}
+                        onDrop={handleBeadDrop}
+                    />
+                ))}
+            </Container>
         </Container>
     );
 };
@@ -620,13 +619,79 @@ const BraceletStage = () => {
         };
     }, []);
 
+    const [rotation, setRotation] = useState(0);
+    const rotRef = useRef(0);
+    const velocityRef = useRef(0);
+    const lastMoveTimeRef = useRef(Date.now());
     const { width, height } = dimensions;
-
+    // 只在PixiJS舞台空白区域（最底层Container）滑动时触发旋转
+    const pointerDownRef = useRef(false);
+    const lastXRef = useRef<number | null>(null);
+    // 舞台空白区域滑动旋转（只在最底层Container内生效）
+    const animationIdRef = useRef<number | null>(null);
+    // 事件处理函数
+    const handleBgPointerDown = (e: any) => {
+        // 只允许鼠标左键或单指
+        if (e.data && e.data.originalEvent) {
+            const oe = e.data.originalEvent;
+            if ('button' in oe && oe.button !== 0) return;
+            if ('touches' in oe && oe.touches.length > 1) return;
+            pointerDownRef.current = true;
+            lastXRef.current = 'touches' in oe ? oe.touches[0].clientX : oe.clientX;
+            velocityRef.current = 0;
+            lastMoveTimeRef.current = Date.now();
+            if (animationIdRef.current) {
+                cancelAnimationFrame(animationIdRef.current);
+                animationIdRef.current = null;
+            }
+        }
+    };
+    const handleBgPointerMove = (e: any) => {
+        if (!pointerDownRef.current || lastXRef.current === null) return;
+        if (e.data && e.data.originalEvent) {
+            const oe = e.data.originalEvent;
+            if ('touches' in oe && oe.touches.length > 1) return;
+            const clientX = 'touches' in oe ? oe.touches[0].clientX : oe.clientX;
+            const now = Date.now();
+            const deltaX = clientX - lastXRef.current;
+            const dt = Math.max(now - lastMoveTimeRef.current, 1);
+            lastMoveTimeRef.current = now;
+            lastXRef.current = clientX;
+            velocityRef.current = -deltaX * 0.006 / dt * 16.67;
+            rotRef.current -= deltaX * 0.006;
+            setRotation(rotRef.current);
+        }
+    };
+    const handleBgPointerUp = () => {
+        pointerDownRef.current = false;
+        lastXRef.current = null;
+        let v = velocityRef.current;
+        const animate = () => {
+            if (Math.abs(v) < 0.00005) return;
+            rotRef.current += v;
+            setRotation(rotRef.current);
+            v *= 0.92;
+            animationIdRef.current = requestAnimationFrame(animate);
+        };
+        if (Math.abs(v) > 0.00005) {
+            animationIdRef.current = requestAnimationFrame(animate);
+        }
+    };
     return (
-        <div ref={containerRef} className="w-full h-full touch-none">
+        <div ref={containerRef} className="w-full h-full touch-none" style={{position:'relative'}}>
             {width > 0 && height > 0 && (
                 <Stage width={width} height={height} options={{ backgroundAlpha: 0, antialias: true, autoDensity: true, resolution: 2 }}>
-                    <PixiContent width={width} height={height} userZoom={userZoom} />
+                    {/* 最底层透明Container，设置hitArea和事件，只在空白区域滑动时旋转 */}
+                    <Container
+                        interactive={true}
+                        pointerdown={handleBgPointerDown}
+                        pointermove={handleBgPointerMove}
+                        pointerup={handleBgPointerUp}
+                        pointerupoutside={handleBgPointerUp}
+                        hitArea={new PIXI.Rectangle(0, 0, width, height)}
+                        zIndex={-9999}
+                    />
+                    <PixiContent width={width} height={height} userZoom={userZoom} rotation={rotation} />
                 </Stage>
             )}
         </div>
