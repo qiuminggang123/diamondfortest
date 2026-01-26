@@ -1,4 +1,4 @@
-import { ChevronLeft, MoreHorizontal, Minus, CircleDot, Settings } from 'lucide-react';
+import { ChevronLeft, MoreHorizontal, Minus, CircleDot, Settings, UserCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Header() {
@@ -18,10 +18,11 @@ export default function Header() {
         <Link href="/admin" className="p-2 bg-gray-100 rounded-full hover:bg-gray-200" title="管理后台">
           <Settings className="w-5 h-5 text-gray-600" />
         </Link>
-        <div className="w-[1px] h-4 bg-gray-300 mx-1"></div>
-        <button className="p-2 bg-gray-100 rounded-full" title="关于">
-           <CircleDot className="w-5 h-5 text-gray-600" />
-        </button>
+        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+        {/* 用户头像按钮，跳转到我的设计 */}
+        <Link href="/my-designs" className="p-2 bg-gray-100 rounded-full hover:bg-gray-200" title="我的设计">
+          <UserCircle2 className="w-6 h-6 text-gray-600" />
+        </Link>
       </div>
     </header>
   );
