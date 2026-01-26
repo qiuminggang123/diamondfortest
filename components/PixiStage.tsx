@@ -42,6 +42,13 @@ const desaturate = (hex: string, saturation: number = 0.5): string => {
 
 // Unified Component controlling both Shadow and Body with optimized Physics (Ref-based) to prevent jitter
 const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale, onDrop }: { bead: Bead; radius: number, stageWidth: number, stageHeight: number, globalScale: number, onDrop: (id: string, x: number, y: number) => void }) => {
+        // 高光和阴影半径缓动，物理动画不变
+        const smoothRadius = useRef((bead.size * PIXELS_PER_MM) / 2);
+        useTick(() => {
+            const targetRadiusPx = (bead.size * PIXELS_PER_MM) / 2;
+            // 只做半径缓动，避免高光阴影抖动
+            smoothRadius.current += (targetRadiusPx - smoothRadius.current) * 0.18;
+        });
     const app = useApp();
     const shadowContainerRef = useRef<PIXI.Container>(null);
     const bodyContainerRef = useRef<PIXI.Container>(null);
@@ -210,35 +217,38 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
   
     // --- Cached Draw Functions ---
     const drawShadow = useCallback((g: PIXI.Graphics) => {
-      g.clear();
-      // Deep Contact Shadow
-      g.beginFill(0x000000, 0.8); 
-      g.drawEllipse(-beadRadiusPx * 0.15, beadRadiusPx * 0.15, beadRadiusPx * 0.7, beadRadiusPx * 0.6);
-      g.endFill();
-      // Diffused Cast Shadow
-      g.beginFill(0x000000, 0.4); 
-      g.drawEllipse(-beadRadiusPx * 0.4, beadRadiusPx * 0.4, beadRadiusPx * 0.9, beadRadiusPx * 0.7);
-      g.endFill();
-    }, [beadRadiusPx]);
+            g.clear();
+            const r = smoothRadius.current;
+            // Deep Contact Shadow
+            g.beginFill(0x000000, 0.8); 
+            g.drawEllipse(-r * 0.15, r * 0.15, r * 0.7, r * 0.6);
+            g.endFill();
+            // Diffused Cast Shadow
+            g.beginFill(0x000000, 0.4); 
+            g.drawEllipse(-r * 0.4, r * 0.4, r * 0.9, r * 0.7);
+            g.endFill();
+        }, []);
 
     const drawCaustic = useCallback((g: PIXI.Graphics) => {
-      g.clear();
-      g.beginFill(0xFFFFFF, 0.6);
-      g.drawCircle(-beadRadiusPx * 0.2, beadRadiusPx * 0.2, beadRadiusPx * 0.35);
-      g.endFill();
-    }, [beadRadiusPx]);
+            g.clear();
+            const r = smoothRadius.current;
+            g.beginFill(0xFFFFFF, 0.6);
+            g.drawCircle(-r * 0.2, r * 0.2, r * 0.35);
+            g.endFill();
+        }, []);
   
     const drawHighlight = useCallback((g: PIXI.Graphics) => {
-      g.clear();
-      // Sharp Specular Dot (Top-Right)
-      g.beginFill(0xFFFFFF, 1.0); 
-      g.drawCircle(beadRadiusPx * 0.4, -beadRadiusPx * 0.4, beadRadiusPx * 0.15);
-      g.endFill();
-      // Secondary Reflection
-      g.beginFill(0xFFFFFF, 0.4);
-      g.drawCircle(beadRadiusPx * 0.45, -beadRadiusPx * 0.45, beadRadiusPx * 0.25);
-      g.endFill();
-    }, [beadRadiusPx]);
+            g.clear();
+            const r = smoothRadius.current;
+            // Sharp Specular Dot (Top-Right)
+            g.beginFill(0xFFFFFF, 1.0); 
+            g.drawCircle(r * 0.4, -r * 0.4, r * 0.15);
+            g.endFill();
+            // Secondary Reflection
+            g.beginFill(0xFFFFFF, 0.4);
+            g.drawCircle(r * 0.45, -r * 0.45, r * 0.25);
+            g.endFill();
+        }, []);
   
     // Aspect Ratio Logic
     const [aspectRatio, setAspectRatio] = useState(1);

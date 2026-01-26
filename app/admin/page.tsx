@@ -160,24 +160,28 @@ export default function AdminPage() {
                <Tags className="w-5 h-5 text-purple-600" /> 分类管理
            </h2>
            
-           <div className="flex gap-4 mb-6">
-                <input 
-                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                    placeholder="分类名称 (例如: 极品天珠)"
-                    value={catNameInput}
-                    onChange={(e) => setCatNameInput(e.target.value)}
-                />
-                {editingCatId ? (
-                     <>
-                        <button onClick={handleUpdateCategory} className="bg-green-600 text-white px-6 rounded-lg hover:bg-green-700 font-medium">保存</button>
-                        <button onClick={() => { setEditingCatId(null); setCatNameInput(''); }} className="bg-gray-200 text-gray-700 px-4 rounded-lg hover:bg-gray-300">取消</button>
-                     </>
-                ) : (
-                    <button onClick={handleAddCategory} className="bg-purple-600 text-white px-6 rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2">
-                        <Plus size={18} /> 添加分类
-                    </button>
-                )}
-           </div>
+                     <div className="w-full mb-6">
+                         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-center">
+                             <input 
+                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                 placeholder="分类名称 (例如: 极品天珠)"
+                                 value={catNameInput}
+                                 onChange={(e) => setCatNameInput(e.target.value)}
+                             />
+                             <div className="flex gap-2 justify-end">
+                                 {editingCatId ? (
+                                     <>
+                                         <button onClick={handleUpdateCategory} className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 font-medium whitespace-nowrap">保存</button>
+                                         <button onClick={() => { setEditingCatId(null); setCatNameInput(''); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 whitespace-nowrap">取消</button>
+                                     </>
+                                 ) : (
+                                     <button onClick={handleAddCategory} className="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 whitespace-nowrap">
+                                         <Plus size={18} /> 添加分类
+                                     </button>
+                                 )}
+                             </div>
+                         </div>
+                     </div>
 
            <div className="flex flex-wrap gap-3">
                {categories.map(cat => (
