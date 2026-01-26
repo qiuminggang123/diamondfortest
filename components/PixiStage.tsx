@@ -17,7 +17,7 @@ const BEAD_COLORS: Record<string, string> = {
 };
 
 // Z-Index Layers
-const Z_LOGO = 5;
+const Z_LOGO = 0; // logo始终最底层
 const Z_SHADOW = 10;
 const Z_STRING = 20;
 const Z_BODY = 30;
@@ -506,7 +506,7 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
 
     return (
         <Container x={width / 2} y={height / 2} sortableChildren={true} scale={finalScale}>
-            {/* 0. CENTER LOGO（不旋转） */}
+            {/* 0. CENTER LOGO（不旋转，始终最底层） */}
             <Text 
                 key={JSON.stringify(logoFill)}
                 text="AURA LOOP"
