@@ -9,12 +9,7 @@ import clsx from 'clsx';
 
 export default function GlobalUI() {
   const { toast, confirmDialog, hideToast, hideConfirm } = useUIStore();
-  const restoreDesign = useStore((state) => state.restoreDesign);
 
-  // Restore saved design on load (Manual Save behavior)
-  useEffect(() => {
-    restoreDesign();
-  }, [restoreDesign]);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[100] flex flex-col items-center justify-center">

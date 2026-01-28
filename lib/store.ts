@@ -5,16 +5,27 @@ import { v4 as uuidv4 } from 'uuid';
 import { INITIAL_LIBRARY, INITIAL_CATEGORIES } from './initialData';
 import { useUIStore } from './uiStore';
 
+interface SavedDesign {
+  id: string;
+  name: string;
+  beads: Bead[];
+  circumference: number;
+  thumb?: string;
+}
+
 interface AppState {
   beads: Bead[];
-  savedBeads: Bead[]; // Explicitly saved state
+  savedBeads: Bead[]; // Deprecated, for migration
   library: BeadType[];
   categories: Category[];
   selectedBeadId: string | null;
   circumference: number; 
   savedCircumference: number;
   totalPrice: number;
-  
+
+  savedDesigns: SavedDesign[];
+  currentDesignId?: string;
+
   addBead: (beadType: BeadType) => void;
   removeBead: (instanceId: string) => void;
   updateBeadPosition: (instanceId: string, x: number, y: number) => void;
@@ -23,9 +34,9 @@ interface AppState {
   recalculatePositions: () => void;
   selectBead: (instanceId: string | null) => void;
   reset: () => void;
-  
-  saveDesign: () => void; // Manual save action
-  restoreDesign: () => void; // Load saved action
+
+  saveDesign: (name?: string) => void; // Save current as new design
+  setCurrentDesign: (design: SavedDesign) => void; // Load design to stage
 
   addToLibrary: (item: BeadType) => void;
   removeFromLibrary: (id: string) => void;
@@ -41,6 +52,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       beads: [],
       savedBeads: [],
+      savedDesigns: [],
       library: INITIAL_LIBRARY,
       categories: INITIAL_CATEGORIES,
       selectedBeadId: null,
@@ -200,19 +212,34 @@ export const useStore = create<AppState>()(
 
       reset: () => set({ beads: [], totalPrice: 0, circumference: 12.0, selectedBeadId: null }),
       
-      saveDesign: () => set((state) => ({ 
-        savedBeads: state.beads, 
-        savedCircumference: state.circumference 
-      })),
 
-      restoreDesign: () => set((state) => {
-          // Calculate price from saved beads
-          const price = state.savedBeads.reduce((sum, b) => sum + b.price, 0);
-          return {
-             beads: state.savedBeads,
-             circumference: state.savedCircumference || 12.0,
-             totalPrice: price
-          };
+      saveDesign: (name) => set((state) => {
+        const id = 'design-' + Date.now();
+        // 生成缩略图（可选，实际可用canvas导出或主珠图片，这里用 beads[0] 图片做示例）
+        let thumb = state.beads[0]?.image || '';
+        return {
+          savedDesigns: [
+            ...state.savedDesigns,
+            {
+              id,
+              name: name || `设计${state.savedDesigns.length + 1}`,
+              beads: state.beads,
+              circumference: state.circumference,
+              thumb,
+            },
+          ],
+          currentDesignId: id,
+        };
+      }),
+
+      setCurrentDesign: (design) => set(() => {
+        const price = design.beads.reduce((sum, b) => sum + b.price, 0);
+        return {
+          beads: design.beads,
+          circumference: design.circumference,
+          totalPrice: price,
+          currentDesignId: design.id,
+        };
       }),
 
       addToLibrary: (item) => set((state) => ({ library: [...state.library, item] })),
@@ -234,7 +261,9 @@ export const useStore = create<AppState>()(
         library: state.library, 
         categories: state.categories,
         savedBeads: state.savedBeads,
-        savedCircumference: state.savedCircumference
+        savedCircumference: state.savedCircumference,
+        savedDesigns: state.savedDesigns,
+        currentDesignId: state.currentDesignId,
       }),
       // Migration: Ensure library and existing beads get the new textures
       onRehydrateStorage: (state) => {
