@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuthStatus } from "@/lib/useAuthStatus";
 import AdminHeader from "@/components/AdminHeader";
 import { useStore } from "@/lib/store";
 import { useUIStore } from "@/lib/uiStore";
@@ -16,7 +17,9 @@ import {
 } from "lucide-react";
 import { BeadType, Category } from "@/lib/types";
 
-export default function AdminPage() {
+function AdminPage() {
+  const { isLoggedIn, status } = useAuthStatus();
+  const setLibrary = useStore((state) => state.setLibrary ? state.setLibrary : (lib: any) => {});
   const {
     library,
     categories,
@@ -28,13 +31,45 @@ export default function AdminPage() {
     updateCategory,
   } = useStore();
 
+
+
+  // 登录校验：未登录跳转首页并弹出登录弹窗
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!isLoggedIn) {
+      window.location.href = "/?login=1";
+    }
+  }, [isLoggedIn, status]);
+
+  // 珠子数据远程加载
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetch('/api/bead')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          if (typeof setLibrary === 'function') setLibrary(data.data);
+        }
+      });
+  }, [setLibrary, isLoggedIn]);
+
+  // SSR/CSR hydration 修复：只在客户端渲染依赖异步数据的内容
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const { showToast, showConfirm } = useUIStore();
 
   // Bead State
   const [editingId, setEditingId] = useState<string | null>(null);
+  // 获取第一个有效分类id
+  const getDefaultCategoryId = () => {
+    const valid = categories.filter(cat => !["all", "in-use"].includes(cat.id));
+    return valid.length > 0 ? valid[0].id : "";
+  };
+
   const [newBead, setNewBead] = useState<Omit<BeadType, "id">>({
     name: "",
-    type: "crystal",
+    type: getDefaultCategoryId(),
     size: 10,
     price: 10,
     image: "",
@@ -90,23 +125,61 @@ export default function AdminPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = () => {
+  // 刷新素材库列表
+  const refreshLibrary = async () => {
+    const res = await fetch('/api/bead');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      if (typeof setLibrary === 'function') setLibrary(data.data);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!newBead.name || !newBead.image) {
       showToast("Name and Image required", "error");
       return;
     }
 
     if (editingId) {
-      // Update existing
-      updateLibraryItem({ ...newBead, id: editingId });
-      showToast("已保存修改", "success");
-      resetForm();
+      // Update existing（PUT）
+      try {
+        const res = await fetch('/api/bead', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...newBead, id: editingId }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          updateLibraryItem({ ...newBead, id: editingId });
+          await refreshLibrary();
+          showToast("已保存修改", "success");
+          resetForm();
+        } else {
+          showToast(data.message || "保存失败", "error");
+        }
+      } catch (e) {
+        showToast("网络错误，保存失败", "error");
+      }
     } else {
-      // Add new
-      const id = "custom-" + Date.now();
-      addToLibrary({ ...newBead, id } as BeadType); // Cast to BeadType
-      showToast("已添加至素材库", "success");
-      resetForm();
+      // Add new（POST）
+      try {
+        const res = await fetch('/api/bead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newBead),
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.data) {
+          addToLibrary(data.data as BeadType); // 后端返回新建对象
+          await refreshLibrary();
+          showToast("已添加至素材库", "success");
+          resetForm();
+        } else {
+          showToast(data.message || "添加失败", "error");
+        }
+      } catch (e) {
+        showToast("网络错误，添加失败", "error");
+      }
     }
   };
 
@@ -128,7 +201,7 @@ export default function AdminPage() {
     setEditingId(null);
     setNewBead({
       name: "",
-      type: categories.length > 2 ? categories[2].id : "other", // Default to first proper category if avail
+      type: getDefaultCategoryId(),
       size: 10,
       price: 10,
       image: "",
@@ -136,20 +209,61 @@ export default function AdminPage() {
     });
   };
 
-  // Category Handlers
-  const handleAddCategory = () => {
-    if (!catNameInput.trim()) return;
-
-    const id = "cat-" + Date.now();
-    addCategory({ id, name: catNameInput });
-    setCatNameInput("");
+  // 刷新分类列表
+  const refreshCategories = async () => {
+    const res = await fetch('/api/category');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      if (typeof useStore.getState().setCategories === 'function') {
+        useStore.getState().setCategories(data.data);
+      }
+    }
   };
 
-  const handleUpdateCategory = () => {
+  // Category Handlers
+  const handleAddCategory = async () => {
+    if (!catNameInput.trim()) return;
+    try {
+      const res = await fetch('/api/category', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: catNameInput }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        addCategory(data.data);
+        await refreshCategories();
+        showToast('分类已添加', 'success');
+        setCatNameInput("");
+      } else {
+        showToast(data.error || '添加失败', 'error');
+      }
+    } catch {
+      showToast('网络错误，添加失败', 'error');
+    }
+  };
+
+  const handleUpdateCategory = async () => {
     if (!editingCatId || !catNameInput.trim()) return;
-    updateCategory({ id: editingCatId, name: catNameInput });
-    setEditingCatId(null);
-    setCatNameInput("");
+    try {
+      const res = await fetch('/api/category', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingCatId, name: catNameInput }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        updateCategory(data.data);
+        await refreshCategories();
+        showToast('分类已修改', 'success');
+        setEditingCatId(null);
+        setCatNameInput("");
+      } else {
+        showToast(data.error || '修改失败', 'error');
+      }
+    } catch {
+      showToast('网络错误，修改失败', 'error');
+    }
   };
 
   const startEditCategory = (cat: Category) => {
@@ -165,10 +279,25 @@ export default function AdminPage() {
     showConfirm({
       title: "删除分类",
       message: "确定删除此分类吗？关联的珠子可能无法正确显示。",
-      onConfirm: () => {
-        removeCategory(id);
-        showToast("分类已删除", "success");
-      },
+      onConfirm: async () => {
+        try {
+          const res = await fetch('/api/category', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            removeCategory(id);
+            await refreshCategories();
+            showToast('分类已删除', 'success');
+          } else {
+            showToast(data.error || '删除失败', 'error');
+          }
+        } catch {
+          showToast('网络错误，删除失败', 'error');
+        }
+      }
     });
   };
 
@@ -176,7 +305,6 @@ export default function AdminPage() {
     <main className="flex flex-col min-h-screen bg-gray-50 relative">
       <AdminHeader />
       <div className="p-8 max-w-6xl mx-auto w-full">
-        {/* ...existing code... */}
         <h1 className="text-3xl font-bold mb-8 text-gray-800">
           素材库管理后台
         </h1>
@@ -257,6 +385,7 @@ export default function AdminPage() {
           </div>
         </div>
 
+
         {/* Upload/Edit Section */}
         <div
           className={`p-6 rounded-2xl shadow-sm mb-8 border-2 transition-colors ${editingId ? "bg-blue-50 border-blue-200" : "bg-white border-white"}`}
@@ -308,13 +437,12 @@ export default function AdminPage() {
                       setNewBead({ ...newBead, type: e.target.value })
                     }
                   >
-                    {categories.map(
-                      (cat) =>
-                        !["all", "in-use"].includes(cat.id) && (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ),
+                    {categories.filter(cat => !["all", "in-use"].includes(cat.id)).map(
+                      (cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      )
                     )}
                   </select>
                 </div>
@@ -407,61 +535,89 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* List Section */}
-        <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-          当前素材库列表 ({library.length})
-          <span className="text-sm font-normal text-gray-400 ml-2">
-            点击卡片可进行编辑
-          </span>
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {library.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handleEdit(item)}
-              className={`cursor-pointer bg-white rounded-xl shadow-sm overflow-hidden group border transition-all hover:shadow-md ${editingId === item.id ? "ring-2 ring-green-500 border-green-500 transform scale-[1.02]" : "border-gray-100 hover:border-blue-200"}`}
-            >
-              <div className="relative aspect-square p-4 bg-gray-50 flex items-center justify-center">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-contain"
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering edit
-                    showConfirm({
-                      title: "删除素材",
-                      message: "确定要删除这个素材吗？",
-                      onConfirm: () => {
-                        removeFromLibrary(item.id);
-                        showToast("素材已删除", "success");
-                      },
-                    });
-                  }}
-                  className="absolute top-2 right-2 bg-white text-red-500 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition hover:bg-red-50"
+        {/* List Section 仅客户端渲染，避免 hydration 错误 */}
+        {mounted ? (
+          <>
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              当前素材库列表 ({library.length})
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                点击卡片可进行编辑
+              </span>
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {library.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleEdit(item)}
+                  className={`cursor-pointer bg-white rounded-xl shadow-sm overflow-hidden group border transition-all hover:shadow-md ${editingId === item.id ? "ring-2 ring-green-500 border-green-500 transform scale-[1.02]" : "border-gray-100 hover:border-blue-200"}`}
                 >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-              <div className="p-3">
-                <h3 className="font-bold text-gray-800 truncate">
-                  {item.name}
-                </h3>
-                <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                  <span>{item.size}mm</span>
-                  <span className="text-blue-600 font-bold">¥{item.price}</span>
+                  <div className="relative aspect-square p-4 bg-gray-50 flex items-center justify-center">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-contain"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent triggering edit
+                        showConfirm({
+                          title: "删除素材",
+                          message: "确定要删除这个素材吗？",
+                          onConfirm: () => {
+                            // 删除素材（DELETE）
+                            fetch('/api/bead', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: item.id }),
+                            })
+                              .then(res => res.json())
+                              .then(async data => {
+                                if (data.success) {
+                                  removeFromLibrary(item.id);
+                                  await refreshLibrary();
+                                  showToast("素材已删除", "success");
+                                } else {
+                                  showToast(data.message || "删除失败", "error");
+                                }
+                              })
+                              .catch(() => {
+                                showToast("网络错误，删除失败", "error");
+                              });
+                          },
+                        });
+                      }}
+                      className="absolute top-2 right-2 bg-white text-red-500 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-bold text-gray-800 truncate">
+                      {item.name}
+                    </h3>
+                    <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                      <span>{item.size}mm</span>
+                      <span className="text-blue-600 font-bold">£{item.price}</span>
+                    </div>
+                  </div>
+                  {editingId === item.id && (
+                    <div className="bg-green-100 text-green-700 text-xs text-center py-1 font-medium">
+                      正在编辑...
+                    </div>
+                  )}
                 </div>
-              </div>
-              {editingId === item.id && (
-                <div className="bg-green-100 text-green-700 text-xs text-center py-1 font-medium">
-                  正在编辑...
-                </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        ) : (
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            当前素材库列表 (...)
+          </h2>
+        )}
       </div>
     </main>
   );
 }
+
+export default AdminPage;
+// ...还原为原始舞台渲染和效果相关代码...

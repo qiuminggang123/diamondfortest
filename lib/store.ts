@@ -41,10 +41,13 @@ interface AppState {
   addToLibrary: (item: BeadType) => void;
   removeFromLibrary: (id: string) => void;
   updateLibraryItem: (item: BeadType) => void;
+  setLibrary?: (items: BeadType[]) => void;
 
   addCategory: (category: Category) => void;
   removeCategory: (id: string) => void;
   updateCategory: (category: Category) => void;
+  setCategories?: (items: Category[]) => void;
+  setSavedDesigns?: (items: any[]) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -56,31 +59,46 @@ export const useStore = create<AppState>()(
       library: INITIAL_LIBRARY,
       categories: INITIAL_CATEGORIES,
       selectedBeadId: null,
-      circumference: 12.0, 
+      circumference: 12.0, // 默认12cm
       savedCircumference: 12.0,
-      totalPrice: 0, 
+      totalPrice: 0, // 默认0元
+
 
       addBead: (beadType) => {
         // Validation: Prevent adding if circumference would exceed 25cm
         const currentBeads = get().beads;
         const currentTotalWidth = currentBeads.reduce((sum, b) => sum + b.size, 0);
         const nextTotalWidth = currentTotalWidth + beadType.size;
-        
-        // Approximate circumfernece in CM = totalWidth (mm) / 10
-        // Use a slight buffer (25.1) to allow exact 25.0
         if (nextTotalWidth / 10 > 25.01) {
              useUIStore.getState().showToast('手围已达到最大限制 (25cm)，无法继续添加珠子。', 'error');
              return;
         }
-
+        // dominantColor优先用前端canvas同步计算
+        function getDominantColorSync(bead) {
+          if (bead.dominantColor) return bead.dominantColor;
+          if (bead.image && typeof window !== 'undefined') {
+            try {
+              const img = document.createElement('img');
+              img.src = bead.image;
+              const canvas = document.createElement('canvas');
+              canvas.width = 10; canvas.height = 10;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, 10, 10);
+              const data = ctx.getImageData(0, 0, 10, 10).data;
+              let r=0,g=0,b=0;
+              for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
+              r=Math.round(r/(data.length/4));g=Math.round(g/(data.length/4));b=Math.round(b/(data.length/4));
+              return `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
+            } catch {}
+          }
+          return undefined;
+        }
         const newBead: Bead = {
           ...beadType,
+          dominantColor: getDominantColorSync(beadType),
           instanceId: uuidv4(),
-          x: 0, 
-          y: 0,
-          rotation: 0
+          x: 0, y: 0, rotation: 0
         };
-
         set((state) => {
           const updatedBeads = [...state.beads, newBead];
           return {
@@ -213,56 +231,114 @@ export const useStore = create<AppState>()(
       reset: () => set({ beads: [], totalPrice: 0, circumference: 12.0, selectedBeadId: null }),
       
 
-      saveDesign: (name) => set((state) => {
-        const id = 'design-' + Date.now();
-        // 生成缩略图（可选，实际可用canvas导出或主珠图片，这里用 beads[0] 图片做示例）
-        let thumb = state.beads[0]?.image || '';
-        return {
-          savedDesigns: [
-            ...state.savedDesigns,
-            {
-              id,
-              name: name || `设计${state.savedDesigns.length + 1}`,
-              beads: state.beads,
-              circumference: state.circumference,
-              thumb,
-            },
-          ],
-          currentDesignId: id,
+      saveDesign: async (name) => {
+        const state = get();
+        // 获取舞台快照
+        let thumb = '';
+        if (typeof window !== 'undefined' && typeof (window as any).getStageSnapshot === 'function') {
+          thumb = (window as any).getStageSnapshot() || '';
+        }
+        const payload = {
+          name: name || `设计${state.savedDesigns.length + 1}`,
+          beads: state.beads.map(b => ({
+            id: b.id,
+            x: b.x,
+            y: b.y,
+            rotation: b.rotation,
+          })),
+          circumference: state.circumference,
+          thumb,
         };
-      }),
+        const res = await fetch('/api/design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          // 保存成功后刷新设计列表
+          const data = await res.json();
+          if (typeof get().setSavedDesigns === 'function') {
+            // 重新拉取设计列表
+            fetch('/api/design').then(r => r.json()).then(d => {
+              if (d.success && Array.isArray(d.data)) get().setSavedDesigns!(d.data);
+            });
+          }
+          // 设置当前设计ID
+          set({ currentDesignId: data.data.id });
+        }
+      },
 
       setCurrentDesign: (design) => set(() => {
-        const price = design.beads.reduce((sum, b) => sum + b.price, 0);
+        // dominantColor优先用前端canvas同步计算
+        function getDominantColorSync(bead) {
+          if (bead.dominantColor) return bead.dominantColor;
+          if (bead.image && typeof window !== 'undefined') {
+            try {
+              const img = document.createElement('img');
+              img.src = bead.image;
+              const canvas = document.createElement('canvas');
+              canvas.width = 10; canvas.height = 10;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, 10, 10);
+              const data = ctx.getImageData(0, 0, 10, 10).data;
+              let r=0,g=0,b=0;
+              for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
+              r=Math.round(r/(data.length/4));g=Math.round(g/(data.length/4));b=Math.round(b/(data.length/4));
+              return `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
+            } catch {}
+          }
+          return undefined;
+        }
+        const beads = (design.beads || []).map((b, idx) => ({
+          ...b,
+          dominantColor: getDominantColorSync(b),
+          instanceId: b.instanceId || b.id || `bead-${idx}`,
+          price: typeof b.price === 'number' ? b.price : 0,
+          image: b.image || '',
+          type: b.type || '',
+          x: typeof b.x === 'number' ? b.x : 0,
+          y: typeof b.y === 'number' ? b.y : 0,
+          rotation: typeof b.rotation === 'number' ? b.rotation : 0,
+        }));
+        const price = beads.reduce((sum, b) => sum + (b.price || 0), 0);
         return {
-          beads: design.beads,
+          beads,
           circumference: design.circumference,
           totalPrice: price,
           currentDesignId: design.id,
         };
       }),
 
-      addToLibrary: (item) => set((state) => ({ library: [...state.library, item] })),
-      removeFromLibrary: (id) => set((state) => ({ library: state.library.filter(i => i.id !== id) })),
-      updateLibraryItem: (item) => set((state) => ({ 
+        addToLibrary: (item) => set((state) => ({ library: [...state.library, item] })),
+        removeFromLibrary: (id) => set((state) => ({ library: state.library.filter(i => i.id !== id) })),
+        updateLibraryItem: (item) => set((state) => ({ 
           library: state.library.map(i => i.id === item.id ? item : i) 
-      })),
+        })),
+        setLibrary: (items) => set(() => ({ library: items })),
 
-      addCategory: (category) => set((state) => ({ categories: [...state.categories, category] })),
-      removeCategory: (id) => set((state) => ({ categories: state.categories.filter(c => c.id !== id) })),
-      updateCategory: (category) => set((state) => ({ 
+        addCategory: (category) => set((state) => ({ categories: [...state.categories, category] })),
+        removeCategory: (id) => set((state) => ({ categories: state.categories.filter(c => c.id !== id) })),
+        updateCategory: (category) => set((state) => ({ 
           categories: state.categories.map(c => c.id === category.id ? category : c) 
-      })),
+        })),
+        setSavedDesigns: (items) => set(() => ({ savedDesigns: items })),
+        setCategories: (items) => set(() => ({ categories: items })),
     }),
     {
       name: 'diamond-store-v39', // Revert to semi-transparency and external caustics
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ 
-        library: state.library, 
+      partialize: (state) => ({
+        library: state.library,
         categories: state.categories,
         savedBeads: state.savedBeads,
         savedCircumference: state.savedCircumference,
-        savedDesigns: state.savedDesigns,
+        // savedDesigns只持久化必要字段，不存thumb
+        savedDesigns: state.savedDesigns?.map(d => ({
+          id: d.id,
+          name: d.name,
+          circumference: d.circumference,
+          // beads: d.beads?.length  // 如需可只存长度
+        })),
         currentDesignId: state.currentDesignId,
       }),
       // Migration: Ensure library and existing beads get the new textures

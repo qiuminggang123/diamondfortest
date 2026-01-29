@@ -14,23 +14,51 @@ import { BeadType } from '@/lib/types';
 import Ripple, { RippleArea } from './Ripple';
 
 export default function BeadLibrary() {
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
+    const [activeCategory, setActiveCategory] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
   
-  // Use library from store directly
-  const allBeads = useStore((state) => state.library);
-  const categories = useStore((state) => state.categories);
-  
-  const addBead = useStore((state) => state.addBead);
-  const reset = useStore((state) => state.reset);
-  const activeBeads = useStore((state) => state.beads); 
-  
-  const { showConfirm, showToast } = useUIStore();
+
+    // Use library from store directly
+    const allBeads = useStore((state) => state.library);
+    const setLibrary = useStore((state) => state.setLibrary ? state.setLibrary : (lib: any) => {});
+        // 保留前端“全部”“使用中”分类，其他用后端
+        const rawCategories = useStore((state) => state.categories);
+        const setCategories = useStore((state) => state.setCategories ? state.setCategories : (cats: any) => {});
+        const categories = [
+            { id: 'all', name: '全部' },
+            { id: 'in-use', name: '使用中' },
+            ...rawCategories.filter(cat => cat.id !== 'all' && cat.id !== 'in-use')
+        ];
+    const addBead = useStore((state) => state.addBead);
+    const reset = useStore((state) => state.reset);
+    const activeBeads = useStore((state) => state.beads); 
+    const { showConfirm, showToast } = useUIStore();
+
+    // 首次挂载时从 API 获取珠子库和类别库
+    useEffect(() => {
+        fetch('/api/bead')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.data)) {
+                    // 保证每个bead有dominantColor字段（只保留dominantColor，没有就不设，logo逻辑兜底）
+                    if (typeof setLibrary === 'function') setLibrary(data.data);
+                }
+            });
+        fetch('/api/category')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && Array.isArray(data.data)) {
+                    if (typeof setCategories === 'function') setCategories(data.data);
+                }
+            });
+        // eslint-disable-next-line
+    }, []);
+// ...existing code...
 
   // Combined logic: no longer need useEffect to load localStorage manually if store handles it 
   // (In this version, store initializes from INITIAL_LIBRARY. A real app would load persisted data in store)
@@ -121,7 +149,7 @@ export default function BeadLibrary() {
                 <button
                     key={cat.id}
                     className={clsx(
-                        "relative overflow-hidden min-h-[50px] flex items-center justify-center py-2 text-xs text-center border-l-4 transition-colors max-w-full px-1 break-words leading-tight",
+                        "relative overflow-hidden min-h-12.5 flex items-center justify-center py-2 text-xs text-center border-l-4 transition-colors max-w-full px-1 wrap-break-word leading-tight",
                         activeCategory === cat.id ? "border-black bg-white font-bold" : "border-transparent text-gray-500 hover:bg-gray-100"
                     )}
                     onClick={() => setActiveCategory(cat.id)}
@@ -159,7 +187,7 @@ export default function BeadLibrary() {
                                 />
                             </div>
                         ) : (
-                            <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 shadow-inner flex items-center justify-center relative overflow-hidden">
+                            <div className="w-12 h-12 shrink-0 rounded-full bg-linear-to-br from-gray-100 to-gray-200 shadow-inner flex items-center justify-center relative overflow-hidden">
                                 {/* Faux shine */}
                                 <div className="absolute top-1 left-2 w-4 h-2 bg-white/40 rounded-full rotate-45 blur-sm" />
                             </div>
@@ -167,7 +195,7 @@ export default function BeadLibrary() {
                         
                         <div className="text-center w-full min-w-0">
                             <div className="text-xs font-bold text-gray-800 truncate w-full">{bead.name}</div>
-                            <div className="text-[10px] text-gray-400 truncate w-full">{bead.size}mm - ¥ {bead.price}</div>
+                            <div className="text-[10px] text-gray-400 truncate w-full">{bead.size}mm - £ {bead.price}</div>
                         </div>
                     </motion.div>
                 ))}

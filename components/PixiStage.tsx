@@ -3,18 +3,12 @@
 import { Stage, Container, Sprite, Graphics, Text, useTick, useApp } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 import { useStore } from '@/lib/store';
+import React from 'react';
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { Bead, PIXELS_PER_MM } from '@/lib/types';
 
-// Palette for Average Color Calculation
-const BEAD_COLORS: Record<string, string> = {
-    crystal: '#E5E8E8', // Cool White
-    amethyst: '#9B59B6', // Purple
-    citrine: '#F4D03F',  // Gold/Yellow
-    rose: '#F1948A',     // Pink
-    tea: '#D35400',      // Brown/Bronze
-    default: '#D4AC0D'   // Default Gold if unknown
-};
+// Default logo color
+const DEFAULT_LOGO_COLOR = '#E0E5E5'; // 银灰色
 
 // Z-Index Layers
 const Z_LOGO = 0; // logo始终最底层
@@ -54,10 +48,14 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
     const bodyContainerRef = useRef<PIXI.Container>(null);
     const spriteRef = useRef<PIXI.Sprite>(null); // For rotating the texture independently of the highlight
     
-    // Initial Spawn Position
-    const spawnX = (-stageWidth / 2 + 50) / globalScale; 
-    const spawnY = (stageHeight / 2 - 50) / globalScale; 
-    
+    // Initial Spawn Position: 左下45度方向，距离为braceletOuterRadius+60（Pixi坐标系下应为theta=3π/4）
+    const braceletOuterRadius = radius + (bead.size * PIXELS_PER_MM / 2);
+    const spawnDistance = braceletOuterRadius + 240; // 240px为环外偏移，减少飞入距离
+    // 左下60度，Pixi坐标系极角theta=120°=2*Math.PI/3
+    const theta = 2 * Math.PI / 3;
+    const spawnX = Math.cos(theta) * spawnDistance;
+    const spawnY = Math.sin(theta) * spawnDistance;
+
     // Physics State (Refs for performance - reduces React renders @ 60fps)
     const physicsState = useRef({
         x: spawnX,
@@ -155,9 +153,9 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
         if (isDragging.current) return;
 
         // INERTIA PHYSICS
-        // Adjusted for moderate "Q-bounce" (Balanced stiffness and damping)
-        const stiffness = 0.05 * delta; 
-        const damping = 0.75; 
+        // Lower inertia: smaller stiffness, higher damping
+        const stiffness = 0.03 * delta; // 恢复原始弹性
+        const damping = 0.75; // 恢复原始阻尼
 
         // Position Physics
         const tx = targetPos.x;
@@ -400,25 +398,19 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
     const finalScale = autoScale * userZoom;
 
     // --- Dynamic Logo Gradient Logic ---
+    // 只优先用贴图主色，没有就用dominantColor，没有就用唯一默认色
+    const getBeadColor = (bead) => {
+        // 贴图主色（同步，已在store处理，或可扩展异步）
+        if (bead.dominantColor) return bead.dominantColor;
+        return DEFAULT_LOGO_COLOR;
+    };
     const logoFill = useMemo(() => {
-        // Default Silver/Grey Gradient (Coil color)
-        if (beads.length === 0) return ['#E0E5E5', '#BDC3C7']; 
-
-        // Collect all colors from beads
-        const colors = beads.map(bead => 
-            bead.dominantColor || BEAD_COLORS[bead.type] || BEAD_COLORS.default
-        );
-
-        // Reflect the palette
+        if (beads.length === 0) return [DEFAULT_LOGO_COLOR, DEFAULT_LOGO_COLOR];
+        const colors = beads.map(getBeadColor);
         const uniqueColors = Array.from(new Set(colors));
-
-        // Desaturate colors to reduce vibrancy as requested
-        const desaturatedColors = uniqueColors.map(c => desaturate(c, 0.4)); // 0.4 saturation factor
-
-        if (desaturatedColors.length === 0) return ['#E0E5E5', '#BDC3C7'];
-        if (desaturatedColors.length === 1) return [desaturatedColors[0], desaturatedColors[0]];
-
-        return desaturatedColors;
+        if (uniqueColors.length === 0) return [DEFAULT_LOGO_COLOR, DEFAULT_LOGO_COLOR];
+        if (uniqueColors.length === 1) return [uniqueColors[0], uniqueColors[0]];
+        return uniqueColors;
     }, [beads]);
 
     const logoStyle = useMemo(() => new PIXI.TextStyle({
@@ -521,9 +513,9 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
                 <StringLoop targetRadius={targetRadius} />
                 {beads.map((bead) => (
                     <AnimatedBead
-                        key={bead.instanceId} 
-                        bead={bead} 
-                        radius={targetRadius} 
+                        key={bead.instanceId || bead.id || `${bead.id}-${bead.name}`}
+                        bead={bead}
+                        radius={targetRadius}
                         stageWidth={width}
                         stageHeight={height}
                         globalScale={finalScale}
@@ -535,35 +527,30 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
     );
 };
 
-const BraceletStage = () => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-    const [userZoom, setUserZoom] = useState(1);
-    
+// 支持ref导出快照方法，直接默认导出forwardRef
+export default React.forwardRef((_props, ref) => {
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
+    const [userZoom, setUserZoom] = React.useState(1);
     // Auto-Reset Zoom when Bead Count Increases
     const beadCount = useStore(state => state.beads.length);
-    const prevBeadCount = useRef(beadCount);
-
-    useEffect(() => {
+    const prevBeadCount = React.useRef(beadCount);
+    React.useEffect(() => {
         if (beadCount > prevBeadCount.current) {
             setUserZoom(1); // Reset zoom on add
         }
         prevBeadCount.current = beadCount;
     }, [beadCount]);
-    
     // Store latest zoom in ref for event handlers to access current state without re-binding
-    const zoomRef = useRef(1);
-    const initialPinchDist = useRef<number>(0);
-    const initialPinchZoom = useRef<number>(1);
-
-    useEffect(() => {
+    const zoomRef = React.useRef(1);
+    const initialPinchDist = React.useRef<number>(0);
+    const initialPinchZoom = React.useRef<number>(1);
+    React.useEffect(() => {
         zoomRef.current = userZoom;
     }, [userZoom]);
-
-    useEffect(() => {
+    React.useEffect(() => {
         if (!containerRef.current) return;
         const container = containerRef.current;
-
         const observer = new ResizeObserver((entries) => {
             if (entries[0]) {
                 const { width, height } = entries[0].contentRect;
@@ -571,9 +558,7 @@ const BraceletStage = () => {
             }
         });
         observer.observe(container);
-
         // --- Zoom Event Handlers ---
-
         const handleWheel = (e: WheelEvent) => {
             e.preventDefault();
             // Zoom Sensitivity
@@ -581,7 +566,6 @@ const BraceletStage = () => {
             const newZoom = Math.min(Math.max(zoomRef.current + delta, 0.5), 3.0);
             setUserZoom(newZoom);
         };
-
         const handleTouchStart = (e: TouchEvent) => {
             if (e.touches.length === 2) {
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -590,27 +574,23 @@ const BraceletStage = () => {
                 initialPinchZoom.current = zoomRef.current;
             }
         };
-
         const handleTouchMove = (e: TouchEvent) => {
             if (e.touches.length === 2 && initialPinchDist.current > 0) {
                 e.preventDefault();
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
                 const currentDist = Math.sqrt(dx * dx + dy * dy);
-                
                 const scaleFactor = currentDist / initialPinchDist.current;
                 const newZoom = Math.min(Math.max(initialPinchZoom.current * scaleFactor, 0.5), 3.0);
                 setUserZoom(newZoom);
             }
         };
-
         // Attach non-passive listeners to allow preventing default (scroll)
         container.addEventListener('wheel', handleWheel, { passive: false });
         container.addEventListener('touchstart', handleTouchStart, { passive: true });
         container.addEventListener('touchmove', handleTouchMove, { passive: false });
         // No Clean-up needed for touchEnd since we just reset refs implicitly on next start, 
         // but robust logic resets might help. However, visual glitch is low risk.
-
         return () => {
             observer.disconnect();
             container.removeEventListener('wheel', handleWheel);
@@ -618,17 +598,16 @@ const BraceletStage = () => {
             container.removeEventListener('touchmove', handleTouchMove);
         };
     }, []);
-
-    const [rotation, setRotation] = useState(0);
-    const rotRef = useRef(0);
-    const velocityRef = useRef(0);
-    const lastMoveTimeRef = useRef(Date.now());
+    const [rotation, setRotation] = React.useState(0);
+    const rotRef = React.useRef(0);
+    const velocityRef = React.useRef(0);
+    const lastMoveTimeRef = React.useRef(Date.now());
     const { width, height } = dimensions;
     // 只在PixiJS舞台空白区域（最底层Container）滑动时触发旋转
-    const pointerDownRef = useRef(false);
-    const lastXRef = useRef<number | null>(null);
+    const pointerDownRef = React.useRef(false);
+    const lastXRef = React.useRef<number | null>(null);
     // 舞台空白区域滑动旋转（只在最底层Container内生效）
-    const animationIdRef = useRef<number | null>(null);
+    const animationIdRef = React.useRef<number | null>(null);
     // 事件处理函数
     const handleBgPointerDown = (e: any) => {
         // 只允许鼠标左键或单指
@@ -677,10 +656,33 @@ const BraceletStage = () => {
             animationIdRef.current = requestAnimationFrame(animate);
         }
     };
+    // 导出快照方法（只截取舞台内容，不含UI）
+    // 用于存储Pixi Application实例
+    const appRef = React.useRef<any>(null);
+    React.useImperativeHandle(ref, () => ({
+        getStageSnapshot: () => {
+            const app = appRef.current;
+            if (app && app.renderer && app.stage) {
+                const snapshotCanvas = app.renderer.extract.canvas(app.stage);
+                return snapshotCanvas.toDataURL('image/png');
+            }
+            // fallback: 兼容老逻辑
+            if (containerRef.current) {
+                const canvas = containerRef.current.querySelector('canvas');
+                if (canvas) return canvas.toDataURL('image/png');
+            }
+            return undefined;
+        }
+    }), []);
     return (
         <div ref={containerRef} className="w-full h-full touch-none" style={{position:'relative'}}>
             {width > 0 && height > 0 && (
-                <Stage width={width} height={height} options={{ backgroundAlpha: 0, antialias: true, autoDensity: true, resolution: 2 }}>
+                <Stage
+                    width={width}
+                    height={height}
+                    options={{ backgroundAlpha: 1, backgroundColor: 0xffffff, antialias: true, autoDensity: true, resolution: 2 }}
+                    onMount={app => { appRef.current = app; }}
+                >
                     {/* 最底层透明Container，设置hitArea和事件，只在空白区域滑动时旋转 */}
                     <Container
                         interactive={true}
@@ -696,6 +698,4 @@ const BraceletStage = () => {
             )}
         </div>
     );
-};
-
-export default BraceletStage;
+});

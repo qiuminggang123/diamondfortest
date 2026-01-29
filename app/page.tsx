@@ -13,19 +13,10 @@ export default function Home() {
   const { currentDesignId, savedDesigns, setCurrentDesign } = useStore();
   const router = useRouter();
 
-  useEffect(() => {
-    // 如果有 currentDesignId，自动载入该设计
-    if (currentDesignId && savedDesigns && savedDesigns.length > 0) {
-      const design = savedDesigns.find(d => d.id === currentDesignId);
-      if (design) {
-        setCurrentDesign(design);
-      }
-    }
-    // eslint-disable-next-line
-  }, [currentDesignId]);
+
 
   return (
-    <main className="flex flex-col h-dvh bg-white overflow-hidden relative max-w-3xl mx-auto shadow-2xl">
+    <main className="flex flex-col h-dvh bg-white overflow-hidden relative shadow-2xl">
       <Header />
       {/* Visual Stage Area */}
       <section className="flex-none relative mt-14 z-0">

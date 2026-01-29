@@ -1,16 +1,17 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-const PixiStage = dynamic(() => import('./PixiStage'), { 
-  ssr: false,
-  loading: () => <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400">加载舞台中...</div>
-});
+import React, { useEffect, useRef } from 'react';
+import PixiStage from './PixiStage';
 
 export default function StageWrapper() {
+  const pixiRef = useRef<any>(null);
+  // 挂到window，供全局调用
+  useEffect(() => {
+    (window as any).getStageSnapshot = () => pixiRef.current?.getStageSnapshot?.();
+  }, [pixiRef.current]);
   return (
     <div className="w-full h-[45vh] min-h-[300px] max-h-[500px] relative bg-white">
-      <PixiStage />
+      <PixiStage ref={pixiRef} />
     </div>
   );
 }
