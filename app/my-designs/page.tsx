@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useStore } from '@/lib/store';
+import { useStore, setShowLogin } from '@/lib/store';
 import { useEffect } from 'react';
 import { useAuthStatus } from '@/lib/useAuthStatus';
 import Header from '@/components/Header';
@@ -12,28 +12,32 @@ function MyDesignsPage() {
   const router = useRouter();
 
 
-  // 登录校验：未登录跳转首页并弹出登录弹窗
+  // 登录校验：未登录时跳转到首页并弹出登录框
   useEffect(() => {
-    if (status === "loading") return;
-    if (!isLoggedIn) {
-      window.location.href = "/?login=1";
+    if (status === 'unauthenticated') {
+      router.push('/?showLogin=1');
     }
-  }, [isLoggedIn, status]);
+  }, [status, router]);
+
+  // 如果未登录，不渲染页面内容
+  if (!isLoggedIn) {
+    return null;
+  }
 
   useEffect(() => {
-    if (!isLoggedIn) return;
     fetch('/api/design')
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.data)) {
           if (typeof setSavedDesigns === 'function') setSavedDesigns(data.data);
         }
-      });
-    // eslint-disable-next-line
+      })
+      // eslint-disable-next-line
   }, [isLoggedIn]);
 
   const handleClick = (design: any) => {
     setCurrentDesign(design);
+    // 跳转到首页展示设计
     router.push('/');
   };
 

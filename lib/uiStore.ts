@@ -22,12 +22,17 @@ interface UIState {
     onConfirm: () => void;
     onCancel: () => void;
   };
+  loginModal: {
+    visible: boolean;
+  };
 
   showToast: (message: string, type?: ToastType) => void;
   hideToast: () => void;
   
   showConfirm: (options: ConfirmOptions) => void;
   hideConfirm: () => void;
+  
+  setShowLogin: (visible: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -42,6 +47,9 @@ export const useUIStore = create<UIState>((set) => ({
     message: '',
     onConfirm: () => {},
     onCancel: () => {},
+  },
+  loginModal: {
+    visible: false,
   },
 
   showToast: (message, type = 'info') => {
@@ -76,4 +84,9 @@ export const useUIStore = create<UIState>((set) => ({
     });
   },
   hideConfirm: () => set((state) => ({ confirmDialog: { ...state.confirmDialog, visible: false } })),
+  
+  setShowLogin: (visible) => set((state) => ({ 
+    ...state,
+    loginModal: { ...state.loginModal, visible } 
+  })),
 }));

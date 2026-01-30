@@ -1,17 +1,20 @@
 "use client";
-import { useSession } from "next-auth/react";
+import { useAuthStatus } from "@/lib/useAuthStatus";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import AddressManager from "@/components/AddressManager";
 
 export default function AddressPage() {
-  const { data: session, status } = useSession();
+  const { status, isLoggedIn } = useAuthStatus();
   const router = useRouter();
   useEffect(() => {
-    console.log('address page loaded', { session, status });
-    if (status === "unauthenticated") router.replace("/");
-  }, [status, router, session]);
+    console.log('address page loaded', { isLoggedIn, status });
+    if (status === "unauthenticated") {
+      // 跳转到首页并加上参数以弹出登录框
+      router.push('/?showLogin=1');
+    }
+  }, [status, router]);
   if (status === "loading") return <div className="p-8 text-center">加载中...</div>;
-  if (!session) return null;
-  return <AddressManager userEmail={session.user?.email || ""} />;
+  if (!isLoggedIn) return null;
+  return <AddressManager userEmail={""} />;
 }

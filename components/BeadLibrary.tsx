@@ -12,11 +12,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { BeadType } from '@/lib/types';
 import Ripple, { RippleArea } from './Ripple';
+import DesignConfirmationModal from './DesignConfirmationModal';
+import { useAuthStatus } from '@/lib/useAuthStatus';
+import { useRouter } from 'next/navigation';
 
 export default function BeadLibrary() {
     const [activeCategory, setActiveCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [isMounted, setIsMounted] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const { isLoggedIn } = useAuthStatus();
+    const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -26,7 +32,7 @@ export default function BeadLibrary() {
     // Use library from store directly
     const allBeads = useStore((state) => state.library);
     const setLibrary = useStore((state) => state.setLibrary ? state.setLibrary : (lib: any) => {});
-        // 保留前端“全部”“使用中”分类，其他用后端
+        // 保留前端"全部""使用中"分类，其他用后端
         const rawCategories = useStore((state) => state.categories);
         const setCategories = useStore((state) => state.setCategories ? state.setCategories : (cats: any) => {});
         const categories = [
@@ -37,7 +43,7 @@ export default function BeadLibrary() {
     const addBead = useStore((state) => state.addBead);
     const reset = useStore((state) => state.reset);
     const activeBeads = useStore((state) => state.beads); 
-    const { showConfirm, showToast } = useUIStore();
+    const { showConfirm, showToast, setShowLogin } = useUIStore();
 
     // 首次挂载时从 API 获取珠子库和类别库
     useEffect(() => {
@@ -58,7 +64,6 @@ export default function BeadLibrary() {
             });
         // eslint-disable-next-line
     }, []);
-// ...existing code...
 
   // Combined logic: no longer need useEffect to load localStorage manually if store handles it 
   // (In this version, store initializes from INITIAL_LIBRARY. A real app would load persisted data in store)
@@ -92,8 +97,29 @@ export default function BeadLibrary() {
   };
 
   const handleSave = () => {
+      if (!isLoggedIn) {
+          // 如果用户未登录，打开登录框
+          setShowLogin(true);
+          return;
+      }
+      
       useStore.getState().saveDesign();
       showToast('设计已保存！', 'success');
+  };
+  
+  const handleCompleteDesign = () => {
+    if (!isLoggedIn) {
+      // 与Header组件保持一致，直接打开登录模态框
+      setShowLogin(true);
+      return;
+    }
+    
+    if (activeBeads.length === 0) {
+      alert('请至少添加一颗珠子才能完成设计');
+      return;
+    }
+    
+    setIsConfirmModalOpen(true);
   };
 
   return (
@@ -118,7 +144,15 @@ export default function BeadLibrary() {
              </button>
          </div>
 
-         <button className="relative overflow-hidden flex items-center gap-1 border border-gray-800 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
+         <button 
+            onClick={handleCompleteDesign}
+            disabled={activeBeads.length === 0}
+            className={`relative overflow-hidden flex items-center gap-1 ${
+              activeBeads.length === 0
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'border border-gray-800 text-gray-800 hover:bg-gray-50'
+            } px-4 py-2 rounded-lg text-sm font-medium`}
+         >
              <ShoppingCart size={16} />
              完成设计
              <Ripple />
@@ -206,6 +240,10 @@ export default function BeadLibrary() {
             )}
         </RippleArea>
       </div>
+      <DesignConfirmationModal 
+        isOpen={isConfirmModalOpen} 
+        onClose={() => setIsConfirmModalOpen(false)} 
+      />
     </div>
   );
 }

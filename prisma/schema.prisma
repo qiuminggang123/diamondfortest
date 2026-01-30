@@ -1,6 +1,3 @@
-// Prisma schema for NextAuth.js with PostgreSQL (Neon)
-// 参考官方文档：https://next-auth.js.org/adapters/prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,46 +8,47 @@ datasource db {
 }
 
 model User {
-  resetToken        String?
-  resetTokenExpires DateTime?
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   name              String?
-  email             String? @unique
+  email             String?   @unique
   emailVerified     DateTime?
   image             String?
   password          String?
-  realName          String? // 收件人姓名
-  phone             String? // 电话
-  address           String? // 地址
+  resetToken        String?
+  resetTokenExpires DateTime?
+  address           String?
+  phone             String?
+  realName          String?
   accounts          Account[]
-  sessions          Session[]
   addressInfo       Address?
   designs           Design[]
+  orders            Order[]
+  sessions          Session[]
 }
 
 model Address {
-  id        String  @id @default(cuid())
-  userId    String  @unique
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  realName  String
-  phone     String
-  address   String
+  id       String @id @default(cuid())
+  userId   String @unique
+  realName String
+  phone    String
+  address  String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -71,57 +69,73 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// 珠子类别
 model BeadCategory {
-  id    String  @id @default(cuid())
+  id    String @id @default(cuid())
   name  String
   beads Bead[]
 }
 
-// 珠子材质（含价格）
 model BeadMaterial {
-  id    String  @id @default(cuid())
+  id    String @id @default(cuid())
   name  String
   price Float
   beads Bead[]
 }
 
-// 珠子库（单颗珠子定义）
 model Bead {
-  id         String       @id @default(cuid())
-  name       String
-  image      String?
-  size       Int          // mm
-  categoryId String
-  materialId String
-  dominantColor String?   // 主色调（可选）
-  category   BeadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  material   BeadMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  designBeads DesignBead[]
+  id            String       @id @default(cuid())
+  name          String
+  image         String?
+  size          Int
+  categoryId    String
+  materialId    String
+  dominantColor String?
+  category      BeadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  material      BeadMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  designBeads   DesignBead[]
 }
 
-// 设计方案（与用户关联）
 model Design {
-  id         String       @id @default(cuid())
-  name       String
-  userId     String
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  beads      DesignBead[]
-  thumb      String?
+  id            String       @id @default(cuid())
+  name          String
+  userId        String
+  thumb         String?
   circumference Float?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  beads         DesignBead[]
+  orders        Order[]
 }
 
-// 设计中的珠子实例（顺序/位置/数量等）
 model DesignBead {
-  id        String   @id @default(cuid())
+  id       String @id @default(cuid())
   designId String
-  beadId    String
-  x         Float?  // 可选：渲染坐标
-  y         Float?
-  rotation  Float?
-  order     Int      // 顺序
-  design    Design   @relation(fields: [designId], references: [id], onDelete: Cascade)
-  bead      Bead     @relation(fields: [beadId], references: [id], onDelete: Cascade)
+  beadId   String
+  x        Float?
+  y        Float?
+  rotation Float?
+  order    Int
+  bead     Bead   @relation(fields: [beadId], references: [id], onDelete: Cascade)
+  design   Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  designId        String?
+  totalPrice      Float
+  status          OrderStatus @default(PENDING)
+  shippingAddress String
+  contactName     String
+  contactPhone    String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  design          Design?     @relation(fields: [designId], references: [id])
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum OrderStatus {
+  PENDING
+  SHIPPED
 }

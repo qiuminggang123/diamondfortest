@@ -35,7 +35,7 @@ export default function ResetPasswordForm() {
       });
       if (!res.ok) throw new Error("重置失败");
       setSuccess(true);
-      setTimeout(() => router.push("/"), 2000);
+      // 不再跳转首页，可以提示用户去登录
     } catch (err) {
       setError("重置失败，链接可能已失效");
     } finally {
@@ -48,30 +48,42 @@ export default function ResetPasswordForm() {
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm">
         <h2 className="text-xl font-bold mb-6 text-center">重置密码</h2>
         {success ? (
-          <div className="text-green-600 text-center mb-4">密码重置成功，正在跳转...</div>
+          <div className="text-green-600 text-center mb-4">
+            密码重置成功！请返回登录。
+          </div>
         ) : (
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <input
               type="password"
-              placeholder="新密码（至少6位）"
+              placeholder="新密码"
               className="border rounded px-3 py-2"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
             <input
               type="password"
-              placeholder="确认新密码"
+              placeholder="确认密码"
               className="border rounded px-3 py-2"
               value={confirm}
-              onChange={e => setConfirm(e.target.value)}
+              onChange={(e) => setConfirm(e.target.value)}
               required
             />
             <button type="submit" className="bg-blue-600 text-white rounded py-2 font-semibold" disabled={loading}>
-              {loading ? "重置中..." : "重置密码"}
+              {loading ? "提交中..." : "提交"}
             </button>
-            {error && <div className="text-red-500 text-sm text-center mt-2">{error}</div>}
+            {error && <div className="text-red-500 text-sm">{error}</div>}
           </form>
+        )}
+        {success && (
+          <div className="mt-4 text-center">
+            <button
+              className="text-blue-600 font-medium underline"
+              onClick={() => window.location.href = '/'}
+            >
+              返回首页
+            </button>
+          </div>
         )}
       </div>
     </div>

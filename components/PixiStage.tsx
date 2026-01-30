@@ -528,7 +528,7 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
 };
 
 // 支持ref导出快照方法，直接默认导出forwardRef
-export default React.forwardRef((_props, ref) => {
+export default React.forwardRef((props: { onMount?: () => void }, ref) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
     const [userZoom, setUserZoom] = React.useState(1);
@@ -659,6 +659,7 @@ export default React.forwardRef((_props, ref) => {
     // 导出快照方法（只截取舞台内容，不含UI）
     // 用于存储Pixi Application实例
     const appRef = React.useRef<any>(null);
+    
     React.useImperativeHandle(ref, () => ({
         getStageSnapshot: () => {
             const app = appRef.current;
@@ -674,6 +675,14 @@ export default React.forwardRef((_props, ref) => {
             return undefined;
         }
     }), []);
+
+    // 触发onMount回调
+    React.useEffect(() => {
+        if (props.onMount && appRef.current) {
+            props.onMount();
+        }
+    }, [props.onMount]);
+
     return (
         <div ref={containerRef} className="w-full h-full touch-none" style={{position:'relative'}}>
             {width > 0 && height > 0 && (
@@ -681,7 +690,12 @@ export default React.forwardRef((_props, ref) => {
                     width={width}
                     height={height}
                     options={{ backgroundAlpha: 1, backgroundColor: 0xffffff, antialias: true, autoDensity: true, resolution: 2 }}
-                    onMount={app => { appRef.current = app; }}
+                    onMount={app => { 
+                        appRef.current = app; 
+                        if (props.onMount) {
+                            props.onMount();
+                        }
+                    }}
                 >
                     {/* 最底层透明Container，设置hitArea和事件，只在空白区域滑动时旋转 */}
                     <Container

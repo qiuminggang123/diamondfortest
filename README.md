@@ -31,7 +31,7 @@ A custom bead bracelet design platform built with Next.js, Pixi.js, and Zustand.
     npm run dev
     ```
 
-3.  Open [http://localhost:3000](http://localhost:3000)
+3.  Open [http://localhost:3001](http://localhost:3001)
 
 ## Admin
 Visit `/admin` to import custom bead data.
