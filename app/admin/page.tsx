@@ -278,8 +278,9 @@ function AdminPage() {
     const res = await fetch('/api/category');
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
-      if (typeof useStore.getState().setCategories === 'function') {
-        useStore.getState().setCategories(data.data);
+      const storeState = useStore.getState();
+      if (storeState.setCategories) {
+        storeState.setCategories(data.data);
       }
     }
   };

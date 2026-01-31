@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useStore, setShowLogin } from '@/lib/store';
+import { useStore } from '@/lib/store';
 import { useEffect } from 'react';
 import { useAuthStatus } from '@/lib/useAuthStatus';
 import Header from '@/components/Header';

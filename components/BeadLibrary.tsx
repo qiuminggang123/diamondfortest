@@ -243,6 +243,7 @@ export default function BeadLibrary() {
       <DesignConfirmationModal 
         isOpen={isConfirmModalOpen} 
         onClose={() => setIsConfirmModalOpen(false)} 
+        onConfirm={() => {}}
       />
     </div>
   );

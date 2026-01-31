@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 
 export default function ForgotPasswordModal({ open, onClose, onSent }: { open: boolean; onClose: () => void; onSent?: () => void }) {

@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
@@ -40,8 +40,18 @@ export async function GET(req: NextRequest) {
       });
     } else {
       // 普通用户只能查看自己的订单
+      // 首先根据邮箱获取用户ID
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
+      });
+      
+      if (!user) {
+        return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+      }
+      
       orders = await prisma.order.findMany({
-        where: { userId: session.user.id },
+        where: { userId: user.id },
         include: {
           user: {
             select: {
@@ -90,14 +100,24 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
-    const { designId, shippingAddress, contactName, contactPhone } = await req.json();
+    const { designId, shippingAddress, contactName, contactPhone, totalPrice, quantity } = await req.json();
 
     if (!designId || !shippingAddress || !contactName || !contactPhone) {
       return Response.json({ success: false, error: '缺少必要参数' }, { status: 400 });
+    }
+
+    // 首先根据邮箱获取用户ID
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
     }
 
     // 获取设计和其中的珠子
@@ -112,24 +132,20 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    if (!design || design.userId !== session.user.id) {
+    if (!design || design.userId !== user.id) {
       return Response.json({ success: false, error: '设计不存在或不属于当前用户' }, { status: 400 });
     }
-
-    // 计算总价 - 使用珠子的直接价格
-    const totalPrice = design.beads.reduce((sum, designBead) => {
-      return sum + (designBead.bead.price || 0);
-    }, 0);
 
     // 创建订单
     const order = await prisma.order.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         designId,
-        totalPrice,
+        totalPrice: totalPrice || 0,
         shippingAddress,
         contactName,
         contactPhone,
+        quantity: quantity || 1,
       }
     });
 
@@ -144,7 +160,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
@@ -179,7 +195,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 

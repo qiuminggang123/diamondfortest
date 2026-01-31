@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useStore } from "@/lib/store"; // 导入store来触发更新

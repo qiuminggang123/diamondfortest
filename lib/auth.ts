@@ -62,14 +62,15 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
+        // 扩展 session.user 类型以包含 id
+        (session.user as any).id = token.id as string;
         
         // 检查是否为管理员，支持多种环境变量名称
         const adminEmail = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL;
         if (adminEmail && session.user.email === adminEmail) {
-          session.user.isAdmin = true;
+          (session.user as any).isAdmin = true;
         } else {
-          session.user.isAdmin = false;
+          (session.user as any).isAdmin = false;
         }
       }
       return session;

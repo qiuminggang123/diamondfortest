@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import Image from "next/image";
 import Header from "@/components/Header";
 import StageWrapper from "@/components/StageWrapper";
 import BeadLibrary from "@/components/BeadLibrary";
@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStatus } from "@/lib/useAuthStatus";
 import { useUIStore } from "@/lib/uiStore";
 
-function HomePageContent() {
+export default function HomePageContent() {
   const { currentDesignId, savedDesigns, setCurrentDesign } = useStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,6 +41,7 @@ function HomePageContent() {
     }
   }, [searchParams, isLoggedIn, setShowLogin, showToast]);
 
+
   return (
     <main className="flex flex-col h-dvh bg-white overflow-hidden relative shadow-2xl">
       <Header />
@@ -54,13 +55,5 @@ function HomePageContent() {
         <BeadLibrary />
       </section>
     </main>
-  );
-}
-
-export default function Home() {
-  return (
-    <Suspense fallback={<div>加载中...</div>}>
-      <HomePageContent />
-    </Suspense>
   );
 }

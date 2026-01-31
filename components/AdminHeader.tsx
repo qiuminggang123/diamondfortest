@@ -4,6 +4,10 @@ import { useAuthStatus } from '@/lib/useAuthStatus';
 export default function AdminHeader() {
   const { signOut } = useAuthStatus();
 
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/', redirect: true });
+  };
+
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
       <div className="flex items-center justify-between px-6 py-4">
@@ -29,7 +33,7 @@ export default function AdminHeader() {
             订单管理
           </Link>
           <button 
-            onClick={signOut}
+            onClick={handleSignOut}
             className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
           >
             登出

@@ -19,7 +19,7 @@ export default function DesignConfirmationModal({
   onClose, 
   onConfirm,
   isDraft = false 
-}) {
+}: DesignConfirmationModalProps) {
   const { beads, totalPrice, circumference } = useStore();
   const { isLoggedIn, status } = useAuthStatus();
   const { setShowLogin } = useUIStore();

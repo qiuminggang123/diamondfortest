@@ -1,3 +1,4 @@
+"use client";
 import { Menu, Settings, UserCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';

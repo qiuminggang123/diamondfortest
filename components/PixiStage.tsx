@@ -399,7 +399,7 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
 
     // --- Dynamic Logo Gradient Logic ---
     // 只优先用贴图主色，没有就用dominantColor，没有就用唯一默认色
-    const getBeadColor = (bead) => {
+    const getBeadColor = (bead: any) => {
         // 贴图主色（同步，已在store处理，或可扩展异步）
         if (bead.dominantColor) return bead.dominantColor;
         return DEFAULT_LOGO_COLOR;

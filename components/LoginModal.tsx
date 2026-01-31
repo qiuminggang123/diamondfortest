@@ -1,20 +1,15 @@
+"use client";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import ForgotPasswordModal from "./ForgotPasswordModal";
-import RegisterModal from "./RegisterModal";
 
 export default function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [showRegister, setShowRegister] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
 
   if (!open) return null;
 
-  if (showRegister) {
-    return <RegisterModal open={true} onClose={() => setShowRegister(false)} switchToLogin={() => setShowRegister(false)} />;
-  }
-
   if (showForgot) {
-    return <ForgotPasswordModal open={true} onClose={() => setShowForgot(false)} switchToLogin={() => setShowForgot(false)} />;
+    return <ForgotPasswordModal open={true} onClose={() => setShowForgot(false)} onSent={() => setShowForgot(false)} />;
   }
 
   return (
@@ -31,17 +26,6 @@ export default function LoginModal({ open, onClose }: { open: boolean; onClose: 
             <svg width="20" height="20" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C36.62 2.7 30.7 0 24 0 14.64 0 6.4 5.48 2.44 13.44l8.44 6.56C12.98 13.36 17.08 9.5 24 9.5z"/><path fill="#34A853" d="M46.09 24.5c0-1.54-.14-3.02-.39-4.45H24v8.45h12.45c-.54 2.92-2.18 5.4-4.65 7.07l7.19 5.59C43.98 37.36 46.09 31.36 46.09 24.5z"/><path fill="#FBBC05" d="M10.88 28.5c-.64-1.92-1-3.96-1-6s.36-4.08 1-6l-8.44-6.56C.8 13.98 0 18.04 0 24c0 5.96.8 10.02 2.44 13.06l8.44-6.56z"/><path fill="#EA4335" d="M24 48c6.7 0 12.62-2.22 16.64-6.06l-7.19-5.59c-2.01 1.36-4.6 2.15-7.45 2.15-6.92 0-11.02-3.86-13.12-7.5l-8.44 6.56C6.4 42.52 14.64 48 24 48z"/></g></svg>
             Google 登录
           </button>
-          
-          <div className="mt-4 text-center text-sm">
-            <span>还没有账号？</span>
-            <button 
-              type="button" 
-              className="ml-1 text-blue-500 font-medium underline"
-              onClick={() => setShowRegister(true)}
-            >
-              立即注册
-            </button>
-          </div>
           
           <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={onClose} title="关闭">×</button>
         </div>

@@ -74,7 +74,7 @@ export const useStore = create<AppState>()(
              return;
         }
         // dominantColor优先用前端canvas同步计算
-        function getDominantColorSync(bead) {
+        function getDominantColorSync(bead: any) {
           if (bead.dominantColor) return bead.dominantColor;
           if (bead.image && typeof window !== 'undefined') {
             try {
@@ -83,15 +83,22 @@ export const useStore = create<AppState>()(
               const canvas = document.createElement('canvas');
               canvas.width = 10; canvas.height = 10;
               const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, 10, 10);
-              const data = ctx.getImageData(0, 0, 10, 10).data;
-              let r=0,g=0,b=0;
-              for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
-              r=Math.round(r/(data.length/4));g=Math.round(g/(data.length/4));b=Math.round(b/(data.length/4));
-              return `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
-            } catch {}
+              if(ctx) {
+                ctx.drawImage(img, 0, 0, 10, 10);
+                const data = ctx.getImageData(0, 0, 10, 10).data;
+                let r=0,g=0,b=0;
+                for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
+                r=Math.floor(r/(data.length/4));
+                g=Math.floor(g/(data.length/4));
+                b=Math.floor(b/(data.length/4));
+                const hex = '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+                return hex;
+              }
+            } catch (e) {
+              console.error('Failed to get dominant color:', e);
+            }
           }
-          return undefined;
+          return '#808080'; // 默认灰色
         }
         const newBead: Bead = {
           ...beadType,
@@ -270,7 +277,7 @@ export const useStore = create<AppState>()(
 
       setCurrentDesign: (design) => set(() => {
         // dominantColor优先用前端canvas同步计算
-        function getDominantColorSync(bead) {
+        function getDominantColorSync(bead: any) {
           if (bead.dominantColor) return bead.dominantColor;
           if (bead.image && typeof window !== 'undefined') {
             try {
@@ -279,15 +286,22 @@ export const useStore = create<AppState>()(
               const canvas = document.createElement('canvas');
               canvas.width = 10; canvas.height = 10;
               const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, 10, 10);
-              const data = ctx.getImageData(0, 0, 10, 10).data;
-              let r=0,g=0,b=0;
-              for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
-              r=Math.round(r/(data.length/4));g=Math.round(g/(data.length/4));b=Math.round(b/(data.length/4));
-              return `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
-            } catch {}
+              if(ctx) {
+                ctx.drawImage(img, 0, 0, 10, 10);
+                const data = ctx.getImageData(0, 0, 10, 10).data;
+                let r=0,g=0,b=0;
+                for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
+                r=Math.floor(r/(data.length/4));
+                g=Math.floor(g/(data.length/4));
+                b=Math.floor(b/(data.length/4));
+                const hex = '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+                return hex;
+              }
+            } catch (e) {
+              console.error('Failed to get dominant color:', e);
+            }
           }
-          return undefined;
+          return '#808080'; // 默认灰色
         }
         const beads = (design.beads || []).map((b, idx) => ({
           ...b,
@@ -341,7 +355,7 @@ export const useStore = create<AppState>()(
         })),
         currentDesignId: state.currentDesignId,
       }),
-      // Migration: Ensure library and existing beads get the new textures
+      // Migration: Ensure library and existing beads get the new Textures
       onRehydrateStorage: (state) => {
         return (hydratedState, error) => {
            if (hydratedState) {

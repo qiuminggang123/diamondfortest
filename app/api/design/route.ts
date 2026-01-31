@@ -7,12 +7,22 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
+    // 首先根据邮箱获取用户ID
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+    }
+
     const designs = await prisma.design.findMany({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
       include: {
         beads: {
           include: {
@@ -56,7 +66,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
@@ -66,11 +76,21 @@ export async function POST(req: NextRequest) {
       return Response.json({ success: false, error: '缺少必要参数' }, { status: 400 });
     }
 
+    // 首先根据邮箱获取用户ID
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+    }
+
     // 创建设计
     const design = await prisma.design.create({
       data: {
         name,
-        userId: session.user.id,
+        userId: user.id,
         circumference,
         thumb: thumb || null,
       }
@@ -78,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     // 批量添加珠子到设计中
     if (beads.length > 0) {
-      const designBeadsData = beads.map((b, index) => ({
+      const designBeadsData = beads.map((b: any, index: number) => ({
         designId: design.id,
         beadId: b.id,
         x: b.x,
@@ -137,7 +157,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
@@ -147,9 +167,19 @@ export async function PUT(req: NextRequest) {
       return Response.json({ success: false, error: '缺少设计ID' }, { status: 400 });
     }
 
+    // 首先根据邮箱获取用户ID
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+    }
+
     // 更新设计基本信息
     await prisma.design.update({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
       data: {
         name,
         circumference,
@@ -162,7 +192,7 @@ export async function PUT(req: NextRequest) {
 
     // 重新添加珠子到设计中
     if (beads && beads.length > 0) {
-      const designBeadsData = beads.map((b, index) => ({
+      const designBeadsData = beads.map((b: any, index: number) => ({
         designId: id,
         beadId: b.id,
         x: b.x,
@@ -221,7 +251,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
@@ -231,9 +261,19 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ success: false, error: '缺少设计ID' }, { status: 400 });
     }
 
+    // 首先根据邮箱获取用户ID
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+    }
+
     // 删除设计（关联的designBeads会通过onDelete: Cascade自动删除）
     await prisma.design.delete({
-      where: { id, userId: session.user.id }
+      where: { id, userId: user.id }
     });
 
     return Response.json({ success: true });
