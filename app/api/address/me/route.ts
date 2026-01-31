@@ -8,9 +8,9 @@ const isBuilding = typeof window === 'undefined' && process.env.NODE_ENV === 'pr
 
 export async function GET() {
   // 在构建期间跳过数据库操作
-  if (isBuilding) {
-    return NextResponse.json({ address: null });
-  }
+  // if (isBuilding) {
+  //   return NextResponse.json({ address: null });
+  // }
 
   try {
     const session = await getServerSession(authOptions);
