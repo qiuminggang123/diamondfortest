@@ -27,11 +27,15 @@ export default function DesignConfirmationModal({
   const [address, setAddress] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  const [quantity, setQuantity] = useState(1); // 新增数量状态
   const [errors, setErrors] = useState({
     address: '',
     contactName: '',
     contactPhone: ''
   });
+
+  // 计算总价（包含数量）
+  const calculatedTotalPrice = totalPrice * quantity;
 
   // 加载用户地址信息
   useEffect(() => {
@@ -115,7 +119,8 @@ export default function DesignConfirmationModal({
             y: b.y,
             rotation: b.rotation,
           })),
-          totalPrice,
+          totalPrice: calculatedTotalPrice, // 使用计算后的总价
+          quantity, // 添加数量字段
           circumference,
           shippingAddress: address,
           contactName,
@@ -197,7 +202,8 @@ export default function DesignConfirmationModal({
             y: b.y,
             rotation: b.rotation,
           })),
-          totalPrice,
+          totalPrice: calculatedTotalPrice, // 使用计算后的总价
+          quantity, // 添加数量字段
           circumference,
           shippingAddress: address,
           contactName,
@@ -216,6 +222,15 @@ export default function DesignConfirmationModal({
       console.error('Failed to create order:', error);
       alert('订单创建失败，请稍后重试');
     }
+  };
+
+  // 数量变化处理函数
+  const increaseQuantity = () => {
+    setQuantity(prev => prev + 1);
+  };
+
+  const decreaseQuantity = () => {
+    setQuantity(prev => Math.max(1, prev - 1)); // 最少为1
   };
 
   if (!isOpen) return null;
@@ -307,9 +322,32 @@ export default function DesignConfirmationModal({
                 <span>手围尺寸:</span>
                 <span>{circumference} cm</span>
               </div>
+              
+              {/* 数量选择器 */}
+              <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                <span>购买数量:</span>
+                <div className="flex items-center">
+                  <button 
+                    onClick={decreaseQuantity}
+                    className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-l-md bg-gray-100 hover:bg-gray-200"
+                  >
+                    -
+                  </button>
+                  <span className="w-12 h-8 flex items-center justify-center border-t border-b border-gray-300">
+                    {quantity}
+                  </span>
+                  <button 
+                    onClick={increaseQuantity}
+                    className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-r-md bg-gray-100 hover:bg-gray-200"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              
               <div className="flex justify-between font-bold text-lg">
                 <span>总价:</span>
-                <span className="text-red-500">¥{totalPrice.toFixed(2)}</span>
+                <span className="text-red-500">¥{calculatedTotalPrice.toFixed(2)}</span>
               </div>
             </div>
           </div>

@@ -75,23 +75,16 @@ model BeadCategory {
   beads Bead[]
 }
 
-model BeadMaterial {
-  id    String @id @default(cuid())
-  name  String
-  price Float
-  beads Bead[]
-}
 
 model Bead {
   id            String       @id @default(cuid())
   name          String
   image         String?
   size          Int
+  price         Float
   categoryId    String
-  materialId    String
   dominantColor String?
   category      BeadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  material      BeadMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
   designBeads   DesignBead[]
 }
 
@@ -131,6 +124,7 @@ model Order {
   contactPhone    String
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
+  quantity        Int         @default(1)
   design          Design?     @relation(fields: [designId], references: [id])
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStatus } from "@/lib/useAuthStatus";
-import AdminHeader from "@/components/AdminHeader";
+import Header from "@/components/Header";
 import { useStore } from "@/lib/store";
 import { useUIStore } from "@/lib/uiStore";
 import {
@@ -16,7 +16,8 @@ import {
   Check,
   Package,
   Truck,
-  Clock
+  Clock,
+  ShoppingCart
 } from "lucide-react";
 import { BeadType, Category } from "@/lib/types";
 
@@ -60,6 +61,9 @@ function AdminPage() {
   useEffect(() => { setMounted(true); }, []);
 
   const { showToast, showConfirm } = useUIStore();
+
+  // 添加当前活动标签的状态
+  const [activeTab, setActiveTab] = useState<'beads' | 'materials' | 'orders'>('beads');
 
   // Bead State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -364,382 +368,452 @@ function AdminPage() {
   if (!isLoggedIn) return null;
 
   return (
-    <main className="flex flex-col min-h-screen bg-gray-50 relative">
-      <AdminHeader />
+    <main className="flex flex-col min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}
+      <Header />
       <div className="p-8 max-w-6xl mx-auto w-full">
         <h1 className="text-3xl font-bold mb-8 text-gray-800">
-          素材库管理后台
+          管理后台
         </h1>
 
-        {/* Order Management */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-gray-100">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5 text-purple-600" /> 订单管理
-          </h2>
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 mb-8">
+          <button
+            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-colors ${
+              activeTab === 'beads'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+            onClick={() => setActiveTab('beads')}
+          >
+            <div className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              珠子管理
+            </div>
+          </button>
+          <button
+            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-colors ${
+              activeTab === 'materials'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+            onClick={() => setActiveTab('materials')}
+          >
+            <div className="flex items-center gap-2">
+              <Tags className="w-4 h-4" />
+              类别管理
+            </div>
+          </button>
+          <button
+            className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-colors ${
+              activeTab === 'orders'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+            onClick={() => setActiveTab('orders')}
+          >
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              订单管理
+            </div>
+          </button>
+        </div>
 
-          {loadingOrders ? (
-            <div className="text-center py-4">加载订单中...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总价</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下单时间</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {orders.map((order) => (
-                    <tr key={order.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.user?.name || order.user?.email || '未知用户'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">¥{order.totalPrice.toFixed(2)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          order.status === 'PENDING' 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {order.status === 'PENDING' ? '待发货' : '已发货'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(order.createdAt).toLocaleString('zh-CN')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        {/* Tab Content */}
+        <div className="space-y-8">
+
+          {/* Bead Management Tab */}
+          {activeTab === 'beads' && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                <Upload className="w-5 h-5 text-purple-600" /> 珠子管理
+              </h2>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Form Section */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-6">
+                    {editingId ? "编辑珠子" : "添加新珠子"}
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        珠子名称
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg"
+                        value={newBead.name}
+                        onChange={(e) =>
+                          setNewBead({ ...newBead, name: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        分类
+                      </label>
+                      <select
+                        className="w-full px-4 py-2 border rounded-lg"
+                        value={newBead.type}
+                        onChange={(e) =>
+                          setNewBead({ ...newBead, type: e.target.value })
+                        }
+                      >
+                        {categories
+                          .filter(cat => !["all", "in-use"].includes(cat.id))
+                          .map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          尺寸 (mm)
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full px-4 py-2 border rounded-lg"
+                          value={newBead.size}
+                          onChange={(e) =>
+                            setNewBead({ ...newBead, size: Number(e.target.value) })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          价格 (元)
+                        </label>
+                        <input
+                          type="number"
+                          className="w-full px-4 py-2 border rounded-lg"
+                          value={newBead.price}
+                          onChange={(e) =>
+                            setNewBead({ ...newBead, price: Number(e.target.value) })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                      <button
+                        onClick={handleSubmit}
+                        className={`flex-1 py-3 text-white rounded-lg font-medium transition shadow-md ${editingId ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
+                      >
+                        {editingId ? "保存修改" : "确认添加至库"}
+                      </button>
+                      {editingId && (
                         <button
-                          onClick={() => updateOrderStatus(order.id, order.status === 'PENDING' ? 'SHIPPED' : 'PENDING')}
-                          className={`mr-4 ${
-                            order.status === 'PENDING' 
-                              ? 'text-yellow-600 hover:text-yellow-900' 
-                              : 'text-green-600 hover:text-green-900'
-                          }`}
+                          onClick={resetForm}
+                          className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
                         >
-                          {order.status === 'PENDING' ? '标记为已发货' : '标记为待发货'}
+                          取消
                         </button>
-                        <button
-                          onClick={() => {
-                            // 查看订单详情的处理
-                            alert(`订单详情：\n${JSON.stringify(order, null, 2)}`);
-                          }}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          查看详情
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              
-              {orders.length === 0 && (
-                <div className="text-center py-4 text-gray-500">暂无订单</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Image Upload Section */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-6">上传图片</h3>
+                  
+                  <div className="space-y-6">
+                    {/* Image Preview */}
+                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 relative">
+                      {newBead.image ? (
+                        <div className="relative w-48 h-48 mb-4 group">
+                          <img
+                            src={newBead.image}
+                            alt="Preview"
+                            className="w-full h-full object-contain drop-shadow-lg"
+                          />
+                          <button
+                            onClick={() => setNewBead({ ...newBead, image: "" })}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-400 mb-4">
+                          <div className="w-24 h-24 mx-auto bg-gray-200 rounded-full mb-2 flex items-center justify-center">
+                            <ImageIcon className="w-12 h-12 opacity-30" />
+                          </div>
+                          <p>支持 JPG, PNG, WEBP (建议透明背景)</p>
+                        </div>
+                      )}
+
+                      <label className="cursor-pointer bg-white border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
+                        <Upload size={18} />
+                        <span>{newBead.image ? "更换贴图" : "上传贴图"}</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                      <p className="mt-2 text-xs text-gray-400">
+                        注意：贴图中必须包含横向水平的绳子穿过珠子中心
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* List Section 仅客户端渲染，避免 hydration 错误 */}
+              {mounted ? (
+                <>
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 mt-10">
+                    当前素材库列表 ({library.length})
+                    <span className="text-sm font-normal text-gray-400 ml-2">
+                      点击卡片可进行编辑
+                    </span>
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                    {library.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleEdit(item)}
+                        className={`cursor-pointer bg-white rounded-xl shadow-sm overflow-hidden group border transition-all hover:shadow-md ${editingId === item.id ? "ring-2 ring-green-500 border-green-500 transform scale-[1.02]" : "border-gray-100 hover:border-blue-200"}`}
+                      >
+                        <div className="relative aspect-square p-4 bg-gray-50 flex items-center justify-center">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-contain"
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent triggering edit
+                              showConfirm({
+                                title: "删除素材",
+                                message: "确定要删除这个素材吗？",
+                                onConfirm: () => {
+                                  // 删除素材（DELETE）
+                                  fetch('/api/bead', {
+                                    method: 'DELETE',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ id: item.id }),
+                                  })
+                                    .then(res => res.json())
+                                    .then(async data => {
+                                      if (data.success) {
+                                        removeFromLibrary(item.id);
+                                        await refreshLibrary();
+                                        showToast("素材已删除", "success");
+                                      } else {
+                                        showToast(data.message || "删除失败", "error");
+                                      }
+                                    })
+                                    .catch(() => {
+                                      showToast("网络错误，删除失败", "error");
+                                    });
+                                },
+                              });
+                            }}
+                            className="absolute top-2 right-2 bg-white text-red-500 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition hover:bg-red-50"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <div className="p-3">
+                          <h3 className="font-bold text-gray-800 truncate">
+                            {item.name}
+                          </h3>
+                          <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                            <span>{item.size}mm</span>
+                            <span className="text-blue-600 font-bold">¥{item.price}</span>
+                          </div>
+                        </div>
+                        {editingId === item.id && (
+                          <div className="bg-green-100 text-green-700 text-xs text-center py-1 font-medium">
+                            正在编辑...
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 mt-10">
+                  当前素材库列表 (...)
+                </h2>
               )}
             </div>
           )}
-        </div>
 
-        {/* Category Management */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm mb-8 border border-gray-100">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Tags className="w-5 h-5 text-purple-600" /> 分类管理
-          </h2>
+          {/* Category Management Tab */}
+          {activeTab === 'materials' && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Tags className="w-5 h-5 text-purple-600" /> 类别管理
+              </h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Add/Edit Category Section */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-6">
+                    {editingCatId ? "编辑类别" : "添加新类别"}
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        类别名称
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-2 border rounded-lg"
+                        value={catNameInput}
+                        onChange={(e) => setCatNameInput(e.target.value)}
+                        placeholder="输入类别名称"
+                      />
+                    </div>
 
-          <div className="w-full mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-center">
-              <input
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="分类名称 (例如: 极品天珠)"
-                value={catNameInput}
-                onChange={(e) => setCatNameInput(e.target.value)}
-              />
-              <div className="flex gap-2 justify-end">
-                {editingCatId ? (
-                  <>
-                    <button
-                      onClick={handleUpdateCategory}
-                      className="bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 font-medium whitespace-nowrap"
-                    >
-                      保存
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingCatId(null);
-                        setCatNameInput("");
-                      }}
-                      className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 whitespace-nowrap"
-                    >
-                      取消
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleAddCategory}
-                    className="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <Plus size={18} />
-                    <span>新增分类</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {categories
-              .filter(cat => !["all", "in-use"].includes(cat.id))
-              .map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
-                >
-                  <span className="font-medium text-gray-700">{cat.name}</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => startEditCategory(cat)}
-                      className="text-blue-600 hover:text-blue-900 p-1"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCategory(cat.id)}
-                      className="text-red-600 hover:text-red-900 p-1"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="pt-4 flex gap-3">
+                      <button
+                        onClick={editingCatId ? handleUpdateCategory : handleAddCategory}
+                        className={`flex-1 py-3 text-white rounded-lg font-medium transition shadow-md ${editingCatId ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700"}`}
+                      >
+                        {editingCatId ? "保存修改" : "添加类别"}
+                      </button>
+                      {editingCatId && (
+                        <button
+                          onClick={() => {
+                            setEditingCatId(null);
+                            setCatNameInput("");
+                          }}
+                          className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
+                        >
+                          取消
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-          </div>
-        </div>
 
-        {/* Bead Management */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-purple-600" /> 珠子管理
-          </h2>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Form Section */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h3 className="text-lg font-semibold mb-6">
-                {editingId ? "编辑珠子" : "添加新珠子"}
-              </h3>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    珠子名称
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2 border rounded-lg"
-                    value={newBead.name}
-                    onChange={(e) =>
-                      setNewBead({ ...newBead, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    分类
-                  </label>
-                  <select
-                    className="w-full px-4 py-2 border rounded-lg"
-                    value={newBead.type}
-                    onChange={(e) =>
-                      setNewBead({ ...newBead, type: e.target.value })
-                    }
-                  >
+                {/* Categories List */}
+                <div className="bg-white p-6 rounded-xl border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-6">当前类别列表</h3>
+                  
+                  <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                     {categories
                       .filter(cat => !["all", "in-use"].includes(cat.id))
                       .map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
+                        <div 
+                          key={cat.id} 
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                        >
+                          <div>
+                            <h4 className="font-medium text-gray-800">{cat.name}</h4>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEditCategory(cat)}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
                       ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      尺寸 (mm)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full px-4 py-2 border rounded-lg"
-                      value={newBead.size}
-                      onChange={(e) =>
-                        setNewBead({ ...newBead, size: Number(e.target.value) })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      价格 (元)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full px-4 py-2 border rounded-lg"
-                      value={newBead.price}
-                      onChange={(e) =>
-                        setNewBead({ ...newBead, price: Number(e.target.value) })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button
-                    onClick={handleSubmit}
-                    className={`flex-1 py-3 text-white rounded-lg font-medium transition shadow-md ${editingId ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
-                  >
-                    {editingId ? "保存修改" : "确认添加至库"}
-                  </button>
-                  {editingId && (
-                    <button
-                      onClick={resetForm}
-                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
-                    >
-                      取消
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Image Upload Section */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h3 className="text-lg font-semibold mb-6">上传图片</h3>
-              
-              <div className="space-y-6">
-                {/* Image Preview */}
-                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50 relative">
-                  {newBead.image ? (
-                    <div className="relative w-48 h-48 mb-4 group">
-                      <img
-                        src={newBead.image}
-                        alt="Preview"
-                        className="w-full h-full object-contain drop-shadow-lg"
-                      />
-                      <button
-                        onClick={() => setNewBead({ ...newBead, image: "" })}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center text-gray-400 mb-4">
-                      <div className="w-24 h-24 mx-auto bg-gray-200 rounded-full mb-2 flex items-center justify-center">
-                        <ImageIcon className="w-12 h-12 opacity-30" />
-                      </div>
-                      <p>支持 JPG, PNG, WEBP (建议透明背景)</p>
-                    </div>
-                  )}
-
-                  <label className="cursor-pointer bg-white border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
-                    <Upload size={18} />
-                    <span>{newBead.image ? "更换贴图" : "上传贴图"}</span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
-                  </label>
-                  <p className="mt-2 text-xs text-gray-400">
-                    注意：贴图中必须包含横向水平的绳子穿过珠子中心
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* List Section 仅客户端渲染，避免 hydration 错误 */}
-          {mounted ? (
-            <>
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 mt-10">
-                当前素材库列表 ({library.length})
-                <span className="text-sm font-normal text-gray-400 ml-2">
-                  点击卡片可进行编辑
-                </span>
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                {library.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => handleEdit(item)}
-                    className={`cursor-pointer bg-white rounded-xl shadow-sm overflow-hidden group border transition-all hover:shadow-md ${editingId === item.id ? "ring-2 ring-green-500 border-green-500 transform scale-[1.02]" : "border-gray-100 hover:border-blue-200"}`}
-                  >
-                    <div className="relative aspect-square p-4 bg-gray-50 flex items-center justify-center">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-contain"
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent triggering edit
-                          showConfirm({
-                            title: "删除素材",
-                            message: "确定要删除这个素材吗？",
-                            onConfirm: () => {
-                              // 删除素材（DELETE）
-                              fetch('/api/bead', {
-                                method: 'DELETE',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: item.id }),
-                              })
-                                .then(res => res.json())
-                                .then(async data => {
-                                  if (data.success) {
-                                    removeFromLibrary(item.id);
-                                    await refreshLibrary();
-                                    showToast("素材已删除", "success");
-                                  } else {
-                                    showToast(data.message || "删除失败", "error");
-                                  }
-                                })
-                                .catch(() => {
-                                  showToast("网络错误，删除失败", "error");
-                                });
-                            },
-                          });
-                        }}
-                        className="absolute top-2 right-2 bg-white text-red-500 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition hover:bg-red-50"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-bold text-gray-800 truncate">
-                        {item.name}
-                      </h3>
-                      <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                        <span>{item.size}mm</span>
-                        <span className="text-blue-600 font-bold">¥{item.price}</span>
-                      </div>
-                    </div>
-                    {editingId === item.id && (
-                      <div className="bg-green-100 text-green-700 text-xs text-center py-1 font-medium">
-                        正在编辑...
+                    
+                    {categories.filter(cat => !["all", "in-use"].includes(cat.id)).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        暂无类别，请添加新类别
                       </div>
                     )}
                   </div>
-                ))}
+                </div>
               </div>
-            </>
-          ) : (
-            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 mt-10">
-              当前素材库列表 (...)
-            </h2>
+            </div>
+          )}
+
+          {/* Order Management Tab */}
+          {activeTab === 'orders' && (
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-purple-600" /> 订单管理
+              </h2>
+
+              {loadingOrders ? (
+                <div className="text-center py-4">加载订单中...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总价</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下单时间</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {orders.map((order) => (
+                        <tr key={order.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.user?.name || order.user?.email || '未知用户'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">¥{order.totalPrice.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              order.status === 'PENDING' 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {order.status === 'PENDING' ? '待发货' : '已发货'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(order.createdAt).toLocaleString('zh-CN')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => updateOrderStatus(order.id, order.status === 'PENDING' ? 'SHIPPED' : 'PENDING')}
+                              className={`mr-4 ${
+                                order.status === 'PENDING' 
+                                  ? 'text-yellow-600 hover:text-yellow-900' 
+                                  : 'text-green-600 hover:text-green-900'
+                              }`}
+                            >
+                              {order.status === 'PENDING' ? '标记为已发货' : '标记为待发货'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                // 查看订单详情的处理
+                                alert(`订单详情：\n${JSON.stringify(order, null, 2)}`);
+                              }}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
+                              查看详情
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  {orders.length === 0 && (
+                    <div className="text-center py-4 text-gray-500">暂无订单</div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStatus } from '@/lib/useAuthStatus';
 import { useRouter } from 'next/navigation';
 import { useUIStore } from '@/lib/uiStore';
-import AdminHeader from '@/components/AdminHeader';
+import Header from '@/components/Header'; // 导入Header组件
 import { Package, Truck, Check } from 'lucide-react';
 
 export default function AdminOrdersPage() {
@@ -92,8 +92,8 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <AdminHeader />
+    <main className="min-h-screen bg-gray-50 pt-14">
+      <Header /> {/* 添加Header组件 */}
       <div className="p-8 max-w-6xl mx-auto w-full">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">

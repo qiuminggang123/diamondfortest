@@ -11,13 +11,7 @@ async function main() {
     }
   }
 
-  // 2. 插入默认材质（如无材质表可自定义）
-  let defaultMaterial = await prisma.beadMaterial.findFirst({ where: { name: '默认材质' } });
-  if (!defaultMaterial) {
-    defaultMaterial = await prisma.beadMaterial.create({ data: { name: '默认材质', price: 0 } });
-  }
-
-  // 3. 插入珠子
+  // 2. 插入珠子（现在直接包含价格字段）
   for (const bead of INITIAL_LIBRARY) {
     // 查找分类
     const cat = await prisma.beadCategory.findFirst({ where: { name: getCategoryName(bead.type) } });
@@ -29,8 +23,9 @@ async function main() {
           name: bead.name,
           image: bead.image,
           size: bead.size,
+          price: bead.price,  // 现在直接使用珠子的价格
           categoryId: cat.id,
-          materialId: defaultMaterial.id,
+          dominantColor: bead.dominantColor || null,
         },
       });
     }

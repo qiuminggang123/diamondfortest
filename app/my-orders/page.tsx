@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useUIStore } from '@/lib/uiStore';
 import { useAuthStatus } from '@/lib/useAuthStatus';
+import Header from '@/components/Header'; // 导入Header组件
 
 export default function MyOrdersPage() {
   const { isLoggedIn, status } = useAuthStatus();
@@ -58,8 +59,9 @@ export default function MyOrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <main className="min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}
+      <Header /> {/* 添加Header组件 */}
+      <div className="py-8 px-4 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">我的订单</h1>
         
         {loading ? (
@@ -116,6 +118,6 @@ export default function MyOrdersPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

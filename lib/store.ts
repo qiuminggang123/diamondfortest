@@ -365,7 +365,7 @@ export const useStore = create<AppState>()(
                    }
                    return bead;
                }) : [];
-
+               
                // Apply updates
                state.library = newLibrary;
                if (newBeads.length > 0) state.beads = newBeads;
