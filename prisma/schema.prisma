@@ -1,4 +1,3 @@
-// 确保 schema.prisma 是标准的 Prisma DSL 格式
 generator client {
   provider = "prisma-client-js"
 }
@@ -81,9 +80,9 @@ model Bead {
   name          String
   image         String?
   size          Int
-  price         Float
   categoryId    String
   dominantColor String?
+  price         Float
   category      BeadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   designBeads   DesignBead[]
 }
