@@ -1,16 +1,10 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 
-// 检查是否处于构建环境中
-const isBuilding = typeof window === 'undefined' && process.env.NODE_ENV === 'production' && !process.env.NEXT_RUNTIME;
-
 export async function GET() {
-  // 在构建期间跳过数据库操作
-  // if (isBuilding) {
-  //   return NextResponse.json({ address: null });
-  // }
+  // 动态导入 Prisma 实例，只在运行时使用
+  const { prisma } = await import("@/lib/prisma");
 
   try {
     const session = await getServerSession(authOptions);
@@ -31,10 +25,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  // 在构建期间跳过数据库操作
-  if (isBuilding) {
-    return NextResponse.json({ error: "构建环境不支持此操作" }, { status: 400 });
-  }
+  // 动态导入 Prisma 实例，只在运行时使用
+  const { prisma } = await import("@/lib/prisma");
 
   try {
     const session = await getServerSession(authOptions);
