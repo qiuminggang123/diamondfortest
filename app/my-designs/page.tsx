@@ -19,12 +19,9 @@ function MyDesignsPage() {
     }
   }, [status, router]);
 
-  // 如果未登录，不渲染页面内容
-  if (!isLoggedIn) {
-    return null;
-  }
-
+  // 加载设计数据
   useEffect(() => {
+    if (!isLoggedIn) return; // 只有在登录状态下才加载数据
     fetch('/api/design')
       .then(res => res.json())
       .then(data => {
@@ -34,6 +31,11 @@ function MyDesignsPage() {
       })
       // eslint-disable-next-line
   }, [isLoggedIn]);
+
+  // 如果未登录，不渲染页面内容
+  if (!isLoggedIn) {
+    return null;
+  }
 
   const handleClick = (design: any) => {
     setCurrentDesign(design);

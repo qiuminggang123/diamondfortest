@@ -291,22 +291,19 @@ export const useStore = create<AppState>()(
                 const data = ctx.getImageData(0, 0, 10, 10).data;
                 let r=0,g=0,b=0;
                 for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
-                r=Math.floor(r/(data.length/4));
-                g=Math.floor(g/(data.length/4));
-                b=Math.floor(b/(data.length/4));
-                const hex = '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
-                return hex;
+                r=Math.round(r/(data.length/4));g=Math.round(g/(data.length/4));b=Math.round(b/(data.length/4));
+                return `#${((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1)}`;
               }
             } catch (e) {
               console.error('Failed to get dominant color:', e);
             }
           }
-          return '#808080'; // 默认灰色
+          return undefined;
         }
         const beads = (design.beads || []).map((b, idx) => ({
           ...b,
           dominantColor: getDominantColorSync(b),
-          instanceId: b.instanceId || b.id || `bead-${idx}`,
+          instanceId: `bead-${uuidv4()}`, // 使用UUID确保唯一性
           price: typeof b.price === 'number' ? b.price : 0,
           image: b.image || '',
           type: b.type || '',
