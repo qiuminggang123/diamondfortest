@@ -1,11 +1,9 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  // 动态导入 Prisma 实例，只在运行时使用
-  const { prisma } = await import("@/lib/prisma");
-
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
