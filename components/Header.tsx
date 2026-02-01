@@ -13,7 +13,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 export default function Header() {
   const [navOpen, setNavOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const { showConfirm, showToast, setShowLogin, loginModal } = useUIStore();
+  const { showConfirm, showToast, setShowLogin, loginModal, showRegister, registerModal } = useUIStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   // 登录状态与登出
@@ -98,7 +98,7 @@ export default function Header() {
             </button>
             <button 
               className="px-3 py-2 rounded hover:bg-green-100 text-green-700 text-base" 
-              onClick={() => setShowLogin(true)}
+              onClick={() => showRegister(true)}
             >
               注册
             </button>
@@ -109,6 +109,15 @@ export default function Header() {
       </nav>
       {/* 登录弹窗 */}
       <LoginModal open={loginModal.visible} onClose={() => setShowLogin(false)} />
+      {/* 注册弹窗 */}
+      <RegisterModal 
+        open={registerModal.visible} 
+        onClose={() => showRegister(false)} 
+        switchToLogin={() => {
+          setShowLogin(true);
+          showRegister(false);
+        }} 
+      />
 
       {/* 移动端：header下方区域菜单，带淡入淡出过渡 */}
       <div className={
@@ -173,7 +182,7 @@ export default function Header() {
               </button>
               <button 
                 className="px-6 py-4 rounded bg-green-100 text-green-700 text-xl font-semibold" 
-                onClick={() => setShowLogin(true)}
+                onClick={() => showRegister(true)}
               >
                 注册
               </button>

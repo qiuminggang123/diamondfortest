@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useStore } from "@/lib/store"; // 导入store来触发更新
+import { useUIStore } from "@/lib/uiStore"; // 导入useUIStore以切换到登录
 
 export default function RegisterModal({ 
   open, 
@@ -25,6 +26,8 @@ export default function RegisterModal({
     phone: '',
     address: ''
   });
+  
+  const { showRegister, setShowLogin } = useUIStore(); // 获取切换注册和登录的函数
 
   if (!open) return null;
 
@@ -171,7 +174,14 @@ export default function RegisterModal({
           <button 
             type="button" 
             className="ml-1 text-blue-500 font-medium underline"
-            onClick={() => switchToLogin ? switchToLogin() : onClose()}
+            onClick={() => {
+              if (switchToLogin) {
+                switchToLogin(); // 使用传递的回调函数
+              } else {
+                setShowLogin(true); // 显示登录模态框
+                showRegister(false); // 隐藏当前注册模态框
+              }
+            }}
           >
             立即登录
           </button>

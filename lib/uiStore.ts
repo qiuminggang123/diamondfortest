@@ -25,6 +25,9 @@ interface UIState {
   loginModal: {
     visible: boolean;
   };
+  registerModal: {
+    visible: boolean;
+  };
 
   showToast: (message: string, type?: ToastType) => void;
   hideToast: () => void;
@@ -33,6 +36,7 @@ interface UIState {
   hideConfirm: () => void;
   
   setShowLogin: (visible: boolean) => void;
+  showRegister: (visible: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -49,6 +53,9 @@ export const useUIStore = create<UIState>((set) => ({
     onCancel: () => {},
   },
   loginModal: {
+    visible: false,
+  },
+  registerModal: {
     visible: false,
   },
 
@@ -88,5 +95,10 @@ export const useUIStore = create<UIState>((set) => ({
   setShowLogin: (visible) => set((state) => ({ 
     ...state,
     loginModal: { ...state.loginModal, visible } 
+  })),
+  
+  showRegister: (visible) => set((state) => ({ 
+    ...state,
+    registerModal: { ...state.registerModal, visible } 
   })),
 }));
