@@ -20,6 +20,7 @@ import {
   ShoppingCart
 } from "lucide-react";
 import { BeadType, Category } from "@/lib/types";
+import { uploadImageToBlob } from '@/lib/blob';
 
 function AdminPage() {
   const { isLoggedIn, status } = useAuthStatus();
@@ -143,13 +144,14 @@ function AdminPage() {
     }
   }, [isLoggedIn]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-
+    
+    try {
+      // 上传到 vercel blob
+      const imageUrl = await uploadImageToBlob(file);
+      
       // Calculate Dominant Color
       const img = new Image();
       img.onload = () => {
@@ -177,16 +179,18 @@ function AdminPage() {
 
           setNewBead((prev) => ({
             ...prev,
-            image: result,
+            image: imageUrl,
             dominantColor: hex,
           }));
         } else {
-          setNewBead((prev) => ({ ...prev, image: result }));
+          setNewBead((prev) => ({ ...prev, image: imageUrl }));
         }
       };
-      img.src = result;
-    };
-    reader.readAsDataURL(file);
+      img.src = imageUrl;
+    } catch (error) {
+      console.error('Upload image failed:', error);
+      showToast("图片上传失败", "error");
+    }
   };
 
   // 刷新素材库列表

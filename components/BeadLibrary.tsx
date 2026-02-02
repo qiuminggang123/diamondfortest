@@ -210,7 +210,7 @@ export default function BeadLibrary() {
                         className="bg-white rounded-xl p-2 flex flex-col items-center gap-2 shadow-sm border border-gray-100 pb-3 h-full justify-between cursor-pointer focus:outline-none focus:bg-gray-50 transition-colors"
                     >
                         {/* Image or Placeholder */}
-                        {bead.image && (bead.image.startsWith('data:') || bead.image.startsWith('/')) ? (
+                        {bead.image ? (
                             <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative bg-transparent">
                                 <Image 
                                     src={bead.image} 
@@ -218,10 +218,16 @@ export default function BeadLibrary() {
                                     width={48} 
                                     height={48} 
                                     className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                      // 如果图片加载失败，可以在这里设置默认图片
+                                      const target = e.target as HTMLImageElement;
+                                      target.onerror = null; // 防止无限循环
+                                      target.src = '/images/default-bead.jpg'; // 默认图片
+                                    }}
                                 />
                             </div>
                         ) : (
-                            <div className="w-12 h-12 shrink-0 rounded-full bg-linear-to-br from-gray-100 to-gray-200 shadow-inner flex items-center justify-center relative overflow-hidden">
+                            <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 shadow-inner flex items-center justify-center relative overflow-hidden">
                                 {/* Faux shine */}
                                 <div className="absolute top-1 left-2 w-4 h-2 bg-white/40 rounded-full rotate-45 blur-sm" />
                             </div>

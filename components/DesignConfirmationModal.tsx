@@ -154,9 +154,6 @@ export default function DesignConfirmationModal({
     }
 
     try {
-      // 添加一个小延迟，确保会话状态同步
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       // 保存设计，包含快照
       let thumb = '';
       if (typeof window !== 'undefined' && typeof (window as any).getStageSnapshot === 'function') {
@@ -182,41 +179,47 @@ export default function DesignConfirmationModal({
         body: JSON.stringify(payload),
       });
 
-      if (!saveResponse.ok) {
-        console.error('Failed to save design before ordering');
-        alert('设计保存失败，无法创建订单');
-        return;
+      let designId = null;
+      if (saveResponse.ok) {
+        const saveResult = await saveResponse.json();
+        designId = saveResult.data?.id;
       }
 
-      // 获取保存的设计数据
-      const saveResult = await saveResponse.json();
-      if (!saveResult.success || !saveResult.data?.id) {
-        console.error('Failed to get design ID after saving');
-        alert('获取设计ID失败，无法创建订单');
-        return;
-      }
-
-      // 使用保存的设计ID创建订单
-      const orderResponse = await fetch('/api/order', {
+      // 添加一个小延迟，确保会话状态同步
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // 发送订单请求，包含设计ID
+      const response = await fetch('/api/order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          designId: saveResult.data.id,
+          designId, // 优先使用设计ID
+          beads: beads.map(b => ({
+            id: b.id, // 这是数据库中珠子的真实ID
+            name: b.name,
+            image: b.image,
+            size: b.size,
+            price: b.price,
+            x: b.x,
+            y: b.y,
+            rotation: b.rotation,
+          })),
           totalPrice: calculatedTotalPrice, // 使用计算后的总价
           quantity, // 添加数量字段
+          circumference,
           shippingAddress: address,
           contactName,
           contactPhone,
         }),
       });
 
-      if (orderResponse.ok) {
+      if (response.ok) {
         alert('订单创建成功！');
         onClose();
       } else {
-        const errorData = await orderResponse.json();
+        const errorData = await response.json();
         alert(`订单创建失败: ${errorData.message || '未知错误'}`);
       }
     } catch (error) {

@@ -104,9 +104,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
-    const { designId, shippingAddress, contactName, contactPhone, totalPrice, quantity } = await req.json();
+    // 解析请求数据，现在需要包含 beads, circumference, thumb 等设计相关信息
+    const { designId, beads, circumference, thumb, shippingAddress, contactName, contactPhone, totalPrice, quantity } = await req.json();
 
-    if (!designId || !shippingAddress || !contactName || !contactPhone) {
+    if ((!designId && (!beads || !Array.isArray(beads))) || !shippingAddress || !contactName || !contactPhone) {
       return Response.json({ success: false, error: '缺少必要参数' }, { status: 400 });
     }
 
@@ -120,27 +121,60 @@ export async function POST(req: NextRequest) {
       return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
     }
 
-    // 获取设计和其中的珠子
-    const design = await prisma.design.findUnique({
-      where: { id: designId },
-      include: {
-        beads: {
-          include: {
-            bead: true
-          }
-        }
-      }
-    });
+    let finalDesignId: string;
 
-    if (!design || design.userId !== user.id) {
-      return Response.json({ success: false, error: '设计不存在或不属于当前用户' }, { status: 400 });
+    // 如果没有提供设计 ID，则创建一个新的设计
+    if (!designId) {
+      // 创建一个临时设计并保存
+      const design = await prisma.design.create({
+        data: {
+          name: `订单_${new Date().toISOString().slice(0, 10)}`,
+          userId: user.id,
+          circumference: circumference || null,
+          thumb: thumb || null,
+        }
+      });
+
+      // 批量添加珠子到设计中
+      if (beads && beads.length > 0) {
+        const designBeadsData = beads.map((b: any, index: number) => ({
+          designId: design.id,
+          beadId: b.id,
+          x: b.x,
+          y: b.y,
+          rotation: b.rotation,
+          order: index
+        }));
+
+        await prisma.designBead.createMany({
+          data: designBeadsData
+        });
+      }
+
+      finalDesignId = design.id;
+    } else {
+      finalDesignId = designId;
+
+      // 验证设计是否存在且属于当前用户
+      const design = await prisma.design.findUnique({
+        where: { id: designId },
+        select: { userId: true }
+      });
+
+      if (!design) {
+        return Response.json({ success: false, error: '设计不存在' }, { status: 400 });
+      }
+
+      if (design.userId !== user.id) {
+        return Response.json({ success: false, error: '设计不属于当前用户' }, { status: 400 });
+      }
     }
 
-    // 创建订单
+    // 创建订单，关联到设计
     const order = await prisma.order.create({
       data: {
         userId: user.id,
-        designId,
+        designId: finalDesignId,
         totalPrice: totalPrice || 0,
         shippingAddress,
         contactName,
@@ -149,7 +183,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    return Response.json({ success: true, data: order });
+    return Response.json({ success: true, data: { ...order, designId: finalDesignId } });
   } catch (e) {
     console.error('创建订单失败:', e);
     return Response.json({ success: false, error: String(e) }, { status: 500 });
