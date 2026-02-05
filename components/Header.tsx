@@ -74,7 +74,7 @@ export default function Header() {
                 <span>管理后台</span>
               </Link>
             )}
-            <Link href="/my-designs" className="flex items-center gap-1 px-3 py-2 rounded hover:bg-gray-100 text-gray-700 text-base">
+            {/* <Link href="/my-designs" className="flex items-center gap-1 px-3 py-2 rounded hover:bg-gray-100 text-gray-700 text-base">
               <UserCircle2 className="w-6 h-6" />
               <span>我的设计</span>
             </Link>
@@ -85,10 +85,10 @@ export default function Header() {
             <Link href="/address" className="flex items-center gap-1 px-3 py-2 rounded hover:bg-gray-100 text-gray-700 text-base">
               <span className="inline-block w-5 h-5 bg-blue-200 rounded-full text-center text-xs font-bold mr-1">地</span>
               <span>地址管理</span>
-            </Link>
+            </Link> */}
           </>
         )}
-        {!isLoggedIn ? (
+        {/* {!isLoggedIn ? (
           <div className="flex gap-2">
             <button 
               className="px-3 py-2 rounded hover:bg-blue-100 text-blue-700 text-base" 
@@ -105,7 +105,7 @@ export default function Header() {
           </div>
         ) : (
           <button className="px-3 py-2 rounded hover:bg-red-100 text-red-700 text-base" onClick={() => signOut()}>登出</button>
-        )}
+        )} */}
       </nav>
       {/* 登录弹窗 */}
       <LoginModal open={loginModal.visible} onClose={() => setShowLogin(false)} />
@@ -145,7 +145,7 @@ export default function Header() {
                   <span>管理后台</span>
                 </Link>
               )}
-              <Link
+              {/* <Link
                 href="/my-designs"
                 className="flex items-center gap-2 px-6 py-4 rounded text-gray-800 text-xl font-semibold w-4/5 justify-center bg-gray-100 hover:bg-gray-200 transition"
                 onClick={() => setNavOpen(false)}
@@ -168,11 +168,11 @@ export default function Header() {
               >
                 <span className="inline-block w-7 h-7 bg-blue-200 rounded-full text-center text-base font-bold mr-1">地</span>
                 <span>地址管理</span>
-              </Link>
+              </Link> */}
               
             </>
           )}
-          {!isLoggedIn ? (
+          {/* {!isLoggedIn ? (
             <div className="flex flex-col gap-4 w-4/5">
               <button 
                 className="px-6 py-4 rounded bg-blue-100 text-blue-700 text-xl font-semibold" 
@@ -189,7 +189,7 @@ export default function Header() {
             </div>
           ) : (
             <button className="px-6 py-4 rounded bg-red-100 text-red-700 text-xl font-semibold w-4/5" onClick={() => signOut()}>登出</button>
-          )}
+          )} */}
         </nav>
       </div>
     </header>

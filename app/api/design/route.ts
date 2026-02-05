@@ -255,7 +255,9 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ success: false, error: '未授权访问' }, { status: 401 });
     }
 
-    const { id } = await req.json();
+    // 从查询参数获取ID而不是从body解析JSON
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
 
     if (!id) {
       return Response.json({ success: false, error: '缺少设计ID' }, { status: 400 });

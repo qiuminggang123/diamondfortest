@@ -154,42 +154,57 @@ function AdminPage() {
       
       // Calculate Dominant Color
       const img = new Image();
+      // 设置 crossOrigin 属性来处理跨域图片
+      img.crossOrigin = 'anonymous';
+      
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          canvas.width = 50;
-          canvas.height = 50;
-          ctx.drawImage(img, 0, 0, 50, 50);
-          const imageData = ctx.getImageData(0, 0, 50, 50);
-          let r = 0,
-            g = 0,
-            b = 0;
-          for (let i = 0; i < imageData.data.length; i += 4) {
-            r += imageData.data[i];
-            g += imageData.data[i + 1];
-            b += imageData.data[i + 2];
-          }
-          const count = imageData.data.length / 4;
-          r = Math.floor(r / count);
-          g = Math.floor(g / count);
-          b = Math.floor(b / count);
-          const hex =
-            "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            canvas.width = 50;
+            canvas.height = 50;
+            ctx.drawImage(img, 0, 0, 50, 50);
+            const imageData = ctx.getImageData(0, 0, 50, 50);
+            let r = 0,
+              g = 0,
+              b = 0;
+            for (let i = 0; i < imageData.data.length; i += 4) {
+              r += imageData.data[i];
+              g += imageData.data[i + 1];
+              b += imageData.data[i + 2];
+            }
+            const count = imageData.data.length / 4;
+            r = Math.floor(r / count);
+            g = Math.floor(g / count);
+            b = Math.floor(b / count);
+            const hex =
+              "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 
-          setNewBead((prev) => ({
-            ...prev,
-            image: imageUrl,
-            dominantColor: hex,
-          }));
-        } else {
+            setNewBead((prev) => ({
+              ...prev,
+              image: imageUrl,
+              dominantColor: hex,
+            }));
+          } else {
+            setNewBead((prev) => ({ ...prev, image: imageUrl }));
+          }
+        } catch (canvasError) {
+          console.warn('无法提取主色调，使用默认颜色:', canvasError);
           setNewBead((prev) => ({ ...prev, image: imageUrl }));
         }
       };
+      
+      // 添加错误处理
+      img.onerror = (error) => {
+        console.warn('图片加载失败，跳过主色调提取:', error);
+        setNewBead((prev) => ({ ...prev, image: imageUrl }));
+      };
+      
       img.src = imageUrl;
-    } catch (error) {
-      console.error('Upload image failed:', error);
-      showToast("图片上传失败", "error");
+    } catch (uploadError) {
+      console.error('图片上传失败:', uploadError);
+      showToast('图片上传失败，请重试', 'error');
     }
   };
 
@@ -408,7 +423,7 @@ function AdminPage() {
               类别管理
             </div>
           </button>
-          <button
+          {/* <button
             className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-colors ${
               activeTab === 'orders'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
@@ -420,7 +435,7 @@ function AdminPage() {
               <ShoppingCart className="w-4 h-4" />
               订单管理
             </div>
-          </button>
+          </button> */}
         </div>
 
         {/* Tab Content */}

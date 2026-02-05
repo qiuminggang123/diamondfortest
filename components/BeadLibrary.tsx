@@ -42,7 +42,7 @@ export default function BeadLibrary() {
         ];
     const addBead = useStore((state) => state.addBead);
     const reset = useStore((state) => state.reset);
-    const activeBeads = useStore((state) => state.beads); 
+    const activeBeads: BeadType[] = [];//useStore((state) => state.beads); 
     const { showConfirm, showToast, setShowLogin } = useUIStore();
 
     // 首次挂载时从 API 获取珠子库和类别库
