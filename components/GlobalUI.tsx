@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import clsx from 'clsx';
+import LoadingModal from './LoadingModal';
 
 export default function GlobalUI() {
   const { toast, confirmDialog, hideToast, hideConfirm } = useUIStore();
@@ -85,6 +86,8 @@ export default function GlobalUI() {
         )}
       </AnimatePresence>
 
+      {/* Loading Modal */}
+      <LoadingModal />
     </div>
   );
 }

@@ -17,8 +17,11 @@ import {
   Package,
   Truck,
   Clock,
-  ShoppingCart
+  ShoppingCart,
+  Home,
+  ChevronRight
 } from "lucide-react";
+import Link from "next/link";
 import { BeadType, Category } from "@/lib/types";
 import { uploadImageToBlob } from '@/lib/blob';
 
@@ -35,7 +38,6 @@ function AdminPage() {
     removeCategory,
     updateCategory,
   } = useStore();
-
 
   // 登录校验：未登录跳转首页并弹出登录弹窗
   useEffect(() => {
@@ -57,11 +59,31 @@ function AdminPage() {
       });
   }, [setLibrary, isLoggedIn]);
 
+  // 类别数据远程加载
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const loadCategories = async () => {
+      try {
+        const res = await fetch('/api/category');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          const storeState = useStore.getState();
+          if (typeof storeState.setCategories === 'function') {
+            storeState.setCategories(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('加载类别数据失败:', error);
+      }
+    };
+    loadCategories();
+  }, [isLoggedIn]);
+
   // SSR/CSR hydration 修复：只在客户端渲染依赖异步数据的内容
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  const { showToast, showConfirm } = useUIStore();
+  const { showToast, showConfirm, showLoading, hideLoading } = useUIStore();
 
   // 添加当前活动标签的状态
   const [activeTab, setActiveTab] = useState<'beads' | 'materials' | 'orders'>('beads');
@@ -149,6 +171,8 @@ function AdminPage() {
     if (!file) return;
     
     try {
+      showLoading({ message: '正在上传图片...' });
+      
       // 上传到 vercel blob
       const imageUrl = await uploadImageToBlob(file);
       
@@ -192,6 +216,8 @@ function AdminPage() {
         } catch (canvasError) {
           console.warn('无法提取主色调，使用默认颜色:', canvasError);
           setNewBead((prev) => ({ ...prev, image: imageUrl }));
+        } finally {
+          hideLoading();
         }
       };
       
@@ -199,12 +225,14 @@ function AdminPage() {
       img.onerror = (error) => {
         console.warn('图片加载失败，跳过主色调提取:', error);
         setNewBead((prev) => ({ ...prev, image: imageUrl }));
+        hideLoading();
       };
       
       img.src = imageUrl;
     } catch (uploadError) {
       console.error('图片上传失败:', uploadError);
       showToast('图片上传失败，请重试', 'error');
+      hideLoading();
     }
   };
 
@@ -223,9 +251,13 @@ function AdminPage() {
       return;
     }
 
-    if (editingId) {
-      // Update existing（PUT）
-      try {
+    try {
+      showLoading({ 
+        message: editingId ? '正在更新珠子...' : '正在添加珠子...'
+      });
+
+      if (editingId) {
+        // Update existing（PUT）
         const res = await fetch('/api/bead', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -240,12 +272,8 @@ function AdminPage() {
         } else {
           showToast(data.message || "保存失败", "error");
         }
-      } catch (e) {
-        showToast("网络错误，保存失败", "error");
-      }
-    } else {
-      // Add new（POST）
-      try {
+      } else {
+        // Add new（POST）
         const res = await fetch('/api/bead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -260,9 +288,11 @@ function AdminPage() {
         } else {
           showToast(data.message || "添加失败", "error");
         }
-      } catch (e) {
-        showToast("网络错误，添加失败", "error");
       }
+    } catch (e) {
+      showToast(editingId ? "网络错误，保存失败" : "网络错误，添加失败", "error");
+    } finally {
+      hideLoading();
     }
   };
 
@@ -308,6 +338,7 @@ function AdminPage() {
   const handleAddCategory = async () => {
     if (!catNameInput.trim()) return;
     try {
+      showLoading({ message: '正在添加类别...' });
       const res = await fetch('/api/category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -324,12 +355,15 @@ function AdminPage() {
       }
     } catch {
       showToast('网络错误，添加失败', 'error');
+    } finally {
+      hideLoading();
     }
   };
 
   const handleUpdateCategory = async () => {
     if (!editingCatId || !catNameInput.trim()) return;
     try {
+      showLoading({ message: '正在更新类别...' });
       const res = await fetch('/api/category', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -347,6 +381,8 @@ function AdminPage() {
       }
     } catch {
       showToast('网络错误，修改失败', 'error');
+    } finally {
+      hideLoading();
     }
   };
 
@@ -365,6 +401,7 @@ function AdminPage() {
       message: "确定删除此分类吗？关联的珠子可能无法正确显示。",
       onConfirm: async () => {
         try {
+          showLoading({ message: '正在删除类别...' });
           const res = await fetch('/api/category', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -380,6 +417,8 @@ function AdminPage() {
           }
         } catch {
           showToast('网络错误，删除失败', 'error');
+        } finally {
+          hideLoading();
         }
       }
     });
@@ -391,6 +430,16 @@ function AdminPage() {
     <main className="flex flex-col min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}
       <Header />
       <div className="p-8 max-w-6xl mx-auto w-full">
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <Link href="/" className="hover:text-blue-600 transition-colors flex items-center gap-1">
+            <Home className="w-4 h-4" />
+            首页
+          </Link>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-gray-800 font-medium">管理后台</span>
+        </nav>
+        
         <h1 className="text-3xl font-bold mb-8 text-gray-800">
           管理后台
         </h1>
@@ -615,26 +664,28 @@ function AdminPage() {
                               showConfirm({
                                 title: "删除素材",
                                 message: "确定要删除这个素材吗？",
-                                onConfirm: () => {
-                                  // 删除素材（DELETE）
-                                  fetch('/api/bead', {
-                                    method: 'DELETE',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ id: item.id }),
-                                  })
-                                    .then(res => res.json())
-                                    .then(async data => {
-                                      if (data.success) {
-                                        removeFromLibrary(item.id);
-                                        await refreshLibrary();
-                                        showToast("素材已删除", "success");
-                                      } else {
-                                        showToast(data.message || "删除失败", "error");
-                                      }
-                                    })
-                                    .catch(() => {
-                                      showToast("网络错误，删除失败", "error");
+                                onConfirm: async () => {
+                                  try {
+                                    showLoading({ message: '正在删除珠子...' }); // 显示加载模态框
+                                    // 删除素材（DELETE）
+                                    const res = await fetch('/api/bead', {
+                                      method: 'DELETE',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ id: item.id }),
                                     });
+                                    const data = await res.json();
+                                    if (data.success) {
+                                      removeFromLibrary(item.id);
+                                      await refreshLibrary();
+                                      showToast("素材已删除", "success");
+                                    } else {
+                                      showToast(data.message || "删除失败", "error");
+                                    }
+                                  } catch (error) {
+                                    showToast("网络错误，删除失败", "error");
+                                  } finally {
+                                    hideLoading(); // 隐藏加载模态框
+                                  }
                                 },
                               });
                             }}

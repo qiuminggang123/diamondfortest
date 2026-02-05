@@ -9,6 +9,11 @@ interface ConfirmOptions {
   onCancel?: () => void;
 }
 
+interface LoadingOptions {
+  message?: string;
+  progress?: number; // 0-100
+}
+
 interface UIState {
   toast: {
     visible: boolean;
@@ -28,6 +33,11 @@ interface UIState {
   registerModal: {
     visible: boolean;
   };
+  loadingModal: {
+    visible: boolean;
+    message: string;
+    progress: number;
+  };
 
   showToast: (message: string, type?: ToastType) => void;
   hideToast: () => void;
@@ -37,6 +47,10 @@ interface UIState {
   
   setShowLogin: (visible: boolean) => void;
   showRegister: (visible: boolean) => void;
+  
+  showLoading: (options?: LoadingOptions) => void;
+  hideLoading: () => void;
+  updateLoadingProgress: (progress: number) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -57,6 +71,11 @@ export const useUIStore = create<UIState>((set) => ({
   },
   registerModal: {
     visible: false,
+  },
+  loadingModal: {
+    visible: false,
+    message: '处理中...',
+    progress: 0,
   },
 
   showToast: (message, type = 'info') => {
@@ -100,5 +119,30 @@ export const useUIStore = create<UIState>((set) => ({
   showRegister: (visible) => set((state) => ({ 
     ...state,
     registerModal: { ...state.registerModal, visible } 
+  })),
+  
+  showLoading: ({ message = '处理中...', progress = 0 } = {}) => {
+    set({ 
+      loadingModal: { 
+        visible: true, 
+        message, 
+        progress 
+      } 
+    });
+  },
+  
+  hideLoading: () => set((state) => ({ 
+    loadingModal: { 
+      ...state.loadingModal, 
+      visible: false,
+      progress: 0 
+    } 
+  })),
+  
+  updateLoadingProgress: (progress) => set((state) => ({ 
+    loadingModal: { 
+      ...state.loadingModal, 
+      progress 
+    } 
   })),
 }));

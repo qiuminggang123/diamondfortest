@@ -103,6 +103,11 @@ export default function BeadLibrary() {
           return;
       }
       
+      if (activeBeads.length === 0) {
+          showToast('请先添加珠子才能保存设计', 'error');
+          return;
+      }
+      
       useStore.getState().saveDesign();
       showToast('设计已保存！', 'success');
   };
@@ -136,12 +141,18 @@ export default function BeadLibrary() {
              </button>
              <button 
                 onClick={handleSave}
-                className="relative overflow-hidden flex items-center gap-1 bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-600 shadow-sm"
+                disabled={activeBeads.length === 0}
+                className={`relative overflow-hidden flex items-center gap-1 ${
+                  activeBeads.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-red-500 text-white hover:bg-red-600'
+                } px-4 py-2 rounded-lg text-sm font-medium shadow-sm`}
              >
                  <Save size={16} />
                  保存
                  <Ripple color="rgba(255, 255, 255, 0.3)" />
              </button>
+
          </div>
 
          <button 
