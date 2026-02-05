@@ -27,7 +27,7 @@ export default function AdminOrdersPage() {
       if (adminEmail && user.email !== adminEmail) {
         // 如果不是管理员，跳转到首页
         router.push('/');
-        showToast('您没有权限访问管理员页面', 'error');
+        showToast('You do not have permission to access the admin page', 'error');
         return;
       }
     }
@@ -67,14 +67,14 @@ export default function AdminOrdersPage() {
         ));
       } else {
         if (res.status === 401) {
-          alert('权限不足或会话过期，请确认您是管理员身份并刷新页面重试');
+          alert('Insufficient permissions or session expired. Please confirm you are an administrator and refresh the page to try again');
         } else {
-          alert(data.message || '更新订单状态失败');
+          alert(data.message || 'Failed to update order status');
         }
       }
     } catch (err) {
       console.error('Failed to update order status:', err);
-      alert('网络错误，更新订单状态失败');
+      alert('Network error, failed to update order status');
     }
   };
 

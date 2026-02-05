@@ -20,11 +20,11 @@ export default function ForgotPasswordModal({ open, onClose, onSent }: { open: b
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      if (!res.ok) throw new Error("请求失败");
+      if (!res.ok) throw new Error("Request failed");
       setSent(true);
       onSent?.();
     } catch (err) {
-      setError("发送失败，请检查邮箱或稍后再试");
+      setError("Sending failed, please check email or try again later");
     } finally {
       setLoading(false);
     }

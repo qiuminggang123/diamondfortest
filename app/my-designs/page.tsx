@@ -12,16 +12,16 @@ function MyDesignsPage() {
   const router = useRouter();
 
 
-  // 登录校验：未登录时跳转到首页并弹出登录框
+  // Login verification: redirect to homepage and pop up login box when not logged in
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/?showLogin=1');
     }
   }, [status, router]);
 
-  // 加载设计数据
+  // Load design data
   useEffect(() => {
-    if (!isLoggedIn) return; // 只有在登录状态下才加载数据
+    if (!isLoggedIn) return; // Only load data when logged in
     fetch('/api/design')
       .then(res => res.json())
       .then(data => {
@@ -32,14 +32,14 @@ function MyDesignsPage() {
       // eslint-disable-next-line
   }, [isLoggedIn]);
 
-  // 如果未登录，不渲染页面内容
+  // If not logged in, do not render page content
   if (!isLoggedIn) {
     return null;
   }
 
   const handleClick = (design: any) => {
     setCurrentDesign(design);
-    // 跳转到首页展示设计
+    // Redirect to homepage to display design
     router.push('/');
   };
 
@@ -49,7 +49,7 @@ function MyDesignsPage() {
       <section className="flex-1 mt-14 p-6 overflow-y-auto">
         <h1 className="text-2xl font-bold mb-6 text-gray-800">我的设计</h1>
         {(!savedDesigns || savedDesigns.length === 0) ? (
-          <div className="text-gray-400 text-center mt-20">暂无已保存的手串设计</div>
+          <div className="text-gray-400 text-center mt-20">No saved bracelet designs</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
             {savedDesigns.map((design, idx) => (
@@ -58,16 +58,16 @@ function MyDesignsPage() {
                 onClick={() => handleClick(design)}
                 className="relative cursor-pointer bg-gray-50 rounded-xl shadow hover:shadow-lg transition overflow-hidden border border-gray-100 hover:border-blue-300"
               >
-                {/* 删除按钮 */}
+                {/* Delete button */}
                 <button
                   className="absolute top-2 right-2 z-10 p-1 bg-white/80 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
-                  title="删除设计"
+                  title="Delete Design"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if (!window.confirm('确定要删除该设计吗？')) return;
-                    // 前端删除
+                    if (!window.confirm('Are you sure you want to delete this design?')) return;
+                    // Frontend deletion
                     if (typeof setSavedDesigns === 'function') setSavedDesigns(savedDesigns.filter(d => d.id !== design.id));
-                    // 后端删除
+                    // Backend deletion
                     await fetch(`/api/design?id=${design.id}`, { method: 'DELETE' });
                   }}
                 >
@@ -75,9 +75,9 @@ function MyDesignsPage() {
                 </button>
                 <div className="aspect-square bg-white flex items-center justify-center">
                   {design.thumb ? (
-                    <img src={design.thumb} alt="设计缩略图" className="w-full h-full object-contain" />
+                    <img src={design.thumb} alt="Design thumbnail" className="w-full h-full object-contain" />
                   ) : (
-                    <div className="text-gray-300 text-sm">无缩略图</div>
+                    <div className="text-gray-300 text-sm">No thumbnail</div>
                   )}
                 </div>
                 <div className="p-3 text-center">

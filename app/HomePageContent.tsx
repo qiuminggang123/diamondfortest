@@ -19,24 +19,24 @@ export default function HomePageContent() {
   const { setShowLogin, showToast } = useUIStore();
 
   useEffect(() => {
-    // 检查URL参数中是否有showLogin=1，如果有则自动打开登录框
+    // Check if URL parameters contain showLogin=1, if so automatically open login modal
     if (searchParams.get('showLogin') === '1' && !isLoggedIn) {
       setShowLogin(true);
-      // 清除URL参数，防止重复打开
+      // Clear URL parameters to prevent repeated opening
       const urlWithoutParams = window.location.pathname;
       window.history.replaceState({}, document.title, urlWithoutParams);
     }
     
-    // 检查URL参数中是否有error，如果有则显示错误信息
+    // Check if URL parameters contain error, if so display error message
     const error = searchParams.get('error');
     if (error) {
-      // 清除URL参数，防止重复显示错误
+      // Clear URL parameters to prevent repeated displaying errors
       const urlWithoutParams = window.location.pathname;
       window.history.replaceState({}, document.title, urlWithoutParams);
       
-      // 显示错误信息
+      // Display error message
       if (error === 'OAuthSignin') {
-        showToast('Google登录失败，请检查您的凭据配置', 'error');
+        showToast('Google login failed, please check your credentials configuration', 'error');
       }
     }
   }, [searchParams, isLoggedIn, setShowLogin, showToast]);

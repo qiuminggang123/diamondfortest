@@ -44,11 +44,11 @@ export default function Header() {
 
   return (
     <header className="absolute top-0 left-0 right-0 h-14 bg-white z-50 flex items-center justify-between px-4 shadow-sm">
-      {/* 移动端：左侧汉堡按钮 */}
+      {/* Mobile: Left hamburger button */}
       <div className="flex items-center">
         <button
           className="p-2 rounded hover:bg-gray-100 focus:outline-none block md:hidden"
-          title="导航菜单"
+          title="Navigation Menu"
           onClick={() => setNavOpen(v => !v)}
         >
           <Menu className="w-6 h-6 text-black" />
@@ -107,9 +107,9 @@ export default function Header() {
           <button className="px-3 py-2 rounded hover:bg-red-100 text-red-700 text-base" onClick={() => signOut()}>登出</button>
         )} */}
       </nav>
-      {/* 登录弹窗 */}
+      {/* Login modal */}
       <LoginModal open={loginModal.visible} onClose={() => setShowLogin(false)} />
-      {/* 注册弹窗 */}
+      {/* Registration modal */}
       <RegisterModal 
         open={registerModal.visible} 
         onClose={() => showRegister(false)} 

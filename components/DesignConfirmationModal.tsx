@@ -69,17 +69,17 @@ export default function DesignConfirmationModal({
     };
 
     if (!address.trim()) {
-      newErrors.address = '收货地址不能为空';
+      newErrors.address = 'Shipping address cannot be empty';
       isValid = false;
     }
 
     if (!contactName.trim()) {
-      newErrors.contactName = '收货人姓名不能为空';
+      newErrors.contactName = 'Recipient name cannot be empty';
       isValid = false;
     }
 
     if (!contactPhone.trim()) {
-      newErrors.contactPhone = '联系电话不能为空';
+      newErrors.contactPhone = 'Contact phone cannot be empty';
       isValid = false;
     }
 
@@ -129,15 +129,15 @@ export default function DesignConfirmationModal({
       });
 
       if (response.ok) {
-        alert('订单创建成功！');
+        alert('Order created successfully!');
         onClose();
       } else {
         const errorData = await response.json();
-        alert(`订单创建失败: ${errorData.message || '未知错误'}`);
+        alert(`Order creation failed: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to create order:', error);
-      alert('订单创建失败，请稍后重试');
+      alert('Order creation failed, please try again later');
     }
   };
 
@@ -162,7 +162,7 @@ export default function DesignConfirmationModal({
 
       // 保存当前设计（包含快照）
       const payload = {
-        name: `订单_${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')}`, // 生成订单名称
+        name: `Order_${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')}`, // Generate order name
         beads: beads.map(b => ({
           id: b.id,
           x: b.x,
@@ -216,15 +216,15 @@ export default function DesignConfirmationModal({
       });
 
       if (response.ok) {
-        alert('订单创建成功！');
+        alert('Order created successfully!');
         onClose();
       } else {
         const errorData = await response.json();
-        alert(`订单创建失败: ${errorData.message || '未知错误'}`);
+        alert(`Order creation failed: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to create order:', error);
-      alert('订单创建失败，请稍后重试');
+      alert('Order creation failed, please try again later');
     }
   };
 
@@ -360,58 +360,58 @@ export default function DesignConfirmationModal({
             <h3 className="font-semibold mb-2">收货信息</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm mb-1">收货人姓名 *</label>
+                <label className="block text-sm mb-1">Recipient Name *</label>
                 <input
                   type="text"
                   value={contactName}
                   onChange={(e) => {
                     setContactName(e.target.value);
                     if (errors.contactName && !e.target.value.trim()) {
-                      setErrors(prev => ({ ...prev, contactName: '收货人姓名不能为空' }));
+                      setErrors(prev => ({ ...prev, contactName: 'Recipient name cannot be empty' }));
                     } else if (errors.contactName) {
                       setErrors(prev => ({ ...prev, contactName: '' }));
                     }
                   }}
                   className={`w-full border rounded-lg px-3 py-2 ${errors.contactName ? 'border-red-500' : ''}`}
-                  placeholder="请输入收货人姓名"
+                  placeholder="Please enter recipient name"
                 />
                 {errors.contactName && <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>}
               </div>
               
               <div>
-                <label className="block text-sm mb-1">联系电话 *</label>
+                <label className="block text-sm mb-1">Contact Phone *</label>
                 <input
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => {
                     setContactPhone(e.target.value);
                     if (errors.contactPhone && !e.target.value.trim()) {
-                      setErrors(prev => ({ ...prev, contactPhone: '联系电话不能为空' }));
+                      setErrors(prev => ({ ...prev, contactPhone: 'Contact phone cannot be empty' }));
                     } else if (errors.contactPhone) {
                       setErrors(prev => ({ ...prev, contactPhone: '' }));
                     }
                   }}
                   className={`w-full border rounded-lg px-3 py-2 ${errors.contactPhone ? 'border-red-500' : ''}`}
-                  placeholder="请输入联系电话"
+                  placeholder="Please enter contact phone"
                 />
                 {errors.contactPhone && <p className="text-red-500 text-sm mt-1">{errors.contactPhone}</p>}
               </div>
               
               <div>
-                <label className="block text-sm mb-1">收货地址 *</label>
+                <label className="block text-sm mb-1">Shipping Address *</label>
                 <textarea
                   value={address}
                   onChange={(e) => {
                     setAddress(e.target.value);
                     if (errors.address && !e.target.value.trim()) {
-                      setErrors(prev => ({ ...prev, address: '收货地址不能为空' }));
+                      setErrors(prev => ({ ...prev, address: 'Shipping address cannot be empty' }));
                     } else if (errors.address) {
                       setErrors(prev => ({ ...prev, address: '' }));
                     }
                   }}
                   className={`w-full border rounded-lg px-3 py-2 ${errors.address ? 'border-red-500' : ''}`}
                   rows={2}
-                  placeholder="请输入收货地址"
+                  placeholder="Please enter shipping address"
                 />
                 {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
               </div>

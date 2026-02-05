@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useStore } from "@/lib/store"; // 导入store来触发更新
-import { useUIStore } from "@/lib/uiStore"; // 导入useUIStore以切换到登录
+import { useStore } from "@/lib/store"; // Import store to trigger updates
+import { useUIStore } from "@/lib/uiStore"; // Import useUIStore to switch to login
 
 export default function RegisterModal({ 
   open, 
@@ -27,7 +27,7 @@ export default function RegisterModal({
     address: ''
   });
   
-  const { showRegister, setShowLogin } = useUIStore(); // 获取切换注册和登录的函数
+  const { showRegister, setShowLogin } = useUIStore(); // Get functions to switch between registration and login
 
   if (!open) return null;
 
@@ -81,7 +81,7 @@ export default function RegisterModal({
       const data = await res.json();
 
       if (data.success) {
-        // 注册成功，自动登录
+        // Registration successful, auto-login
         const signInRes = await signIn("credentials", {
           redirect: false,
           email,
@@ -89,15 +89,15 @@ export default function RegisterModal({
         });
 
         if (signInRes?.ok) {
-          onClose(); // 关闭模态框
+          onClose(); // Close modal
         } else {
           setError("自动登录失败，请手动登录");
         }
       } else {
-        setError(data.message || "注册失败");
+        setError(data.message || "Registration failed");
       }
     } catch (err) {
-      setError("网络错误，请稍后重试");
+      setError("Network error, please try again later");
       console.error("Registration error:", err);
     } finally {
       setLoading(false);
@@ -107,7 +107,7 @@ export default function RegisterModal({
   return (
     <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/30" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-sm relative" onClick={e => e.stopPropagation()}>
-        <h2 className="text-xl font-bold mb-6 text-center">注册</h2>
+        <h2 className="text-xl font-bold mb-6 text-center">Register</h2>
         <form className="flex flex-col gap-4" onSubmit={handleRegister}>
           <input
             type="text"
@@ -163,7 +163,7 @@ export default function RegisterModal({
           {errors.address && <div className="text-red-500 text-sm">{errors.address}</div>}
           
           <button type="submit" className="bg-green-600 text-white rounded py-2 font-semibold" disabled={loading}>
-            {loading ? '注册中...' : '注册'}
+            {loading ? 'Registering...' : 'Register'}
           </button>
           
           {error && <div className="text-red-500 text-sm text-center mt-2">{error}</div>}
@@ -176,14 +176,15 @@ export default function RegisterModal({
             className="ml-1 text-blue-500 font-medium underline"
             onClick={() => {
               if (switchToLogin) {
-                switchToLogin(); // 使用传递的回调函数
+                switchToLogin(); // Use the passed callback function
               } else {
-                setShowLogin(true); // 显示登录模态框
-                showRegister(false); // 隐藏当前注册模态框
+                setShowLogin(true); // Show login modal
+                showRegister(false); // Hide current registration modal
               }
             }}
           >
-            立即登录
+            Login Now
+
           </button>
         </div>
         

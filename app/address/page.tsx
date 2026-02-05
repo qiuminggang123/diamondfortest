@@ -21,7 +21,7 @@ export default function AddressPage() {
     <main className="min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}
       <Header /> {/* 添加Header组件 */}
       <div className="p-8 max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">地址管理</h1> {/* 添加标题 */}
+        <h1 className="text-3xl font-bold mb-8 text-gray-800">Address Management</h1> {/* Add title */}
         <AddressManager userEmail={""} />
       </div>
     </main>

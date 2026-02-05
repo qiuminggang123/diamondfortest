@@ -9,7 +9,7 @@ const IMG_ROSE = '/images/rose-bead.svg'; // Deep Pink
 const IMG_TEA_REAL = '/images/tea-bead.svg'; // Dark Brown/Black (Smokey Quartz)
 
 export const INITIAL_CATEGORIES = [
-  { id: 'all', name: '全部' },
+  { id: 'all', name: 'All' },
   { id: 'in-use', name: '正在使用' },
   { id: 'crystal', name: '白水晶' },
   { id: 'amethyst', name: '紫水晶' },

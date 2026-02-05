@@ -12,7 +12,7 @@ export default function MyOrdersPage() {
   const { setShowLogin } = useUIStore();
   const router = useRouter();
 
-  // 已由下方的 useEffect 统一处理，移除重复逻辑
+  // Already handled uniformly by useEffect below, removed duplicate logic
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,13 +48,13 @@ export default function MyOrdersPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">加载中...</div>
+        <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   if (!isLoggedIn) {
-    // 不再跳转，等待用户登录
+    // No longer redirecting, waiting for user to log in
     return null;
   }
 
@@ -62,7 +62,7 @@ export default function MyOrdersPage() {
     <main className="min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}
       <Header /> {/* 添加Header组件 */}
       <div className="py-8 px-4 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">我的订单</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h1>
         
         {loading ? (
           <div className="text-center py-8">
@@ -70,7 +70,7 @@ export default function MyOrdersPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-lg shadow">
-            <p className="text-gray-500">暂无订单</p>
+            <p className="text-gray-500">No orders</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -78,23 +78,23 @@ export default function MyOrdersPage() {
               <div key={order.id} className="bg-white rounded-lg shadow p-6">
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <p className="text-sm text-gray-500">订单编号</p>
+                    <p className="text-sm text-gray-500">Order Number</p>
                     <p className="font-medium">{order.id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">状态</p>
+                    <p className="text-sm text-gray-500">Status</p>
                     <p className={`font-medium ${
                       order.status === 'PENDING' ? 'text-yellow-600' : 'text-green-600'
                     }`}>
-                      {order.status === 'PENDING' ? '待发货' : '已发货'}
+                      {order.status === 'PENDING' ? 'Pending Shipment' : 'Shipped'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">总价</p>
+                    <p className="text-sm text-gray-500">Total Price</p>
                     <p className="font-medium">¥{order.totalPrice.toFixed(2)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">下单时间</p>
+                    <p className="text-sm text-gray-500">Order Date</p>
                     <p className="font-medium">
                       {new Date(order.createdAt).toLocaleString('zh-CN')}
                     </p>
@@ -102,14 +102,14 @@ export default function MyOrdersPage() {
                 </div>
                 
                 <div className="mt-4">
-                  <p className="text-sm text-gray-500 mb-2">收货信息</p>
+                  <p className="text-sm text-gray-500 mb-2">Shipping Information</p>
                   <p className="font-medium">{order.contactName} {order.contactPhone}</p>
                   <p className="font-medium">{order.shippingAddress}</p>
                 </div>
                 
                 {order.design && (
                   <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-500 mb-2">设计信息</p>
+                    <p className="text-sm text-gray-500 mb-2">Design Information</p>
                     <p className="font-medium">{order.design.name}</p>
                   </div>
                 )}

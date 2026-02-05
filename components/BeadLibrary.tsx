@@ -36,8 +36,8 @@ export default function BeadLibrary() {
         const rawCategories = useStore((state) => state.categories);
         const setCategories = useStore((state) => state.setCategories ? state.setCategories : (cats: any) => {});
         const categories = [
-            { id: 'all', name: '全部' },
-            { id: 'in-use', name: '使用中' },
+            { id: 'all', name: 'All' },
+            { id: 'in-use', name: 'In Use' },
             ...rawCategories.filter(cat => cat.id !== 'all' && cat.id !== 'in-use')
         ];
     const addBead = useStore((state) => state.addBead);
@@ -45,7 +45,7 @@ export default function BeadLibrary() {
     const activeBeads: BeadType[] = [];//useStore((state) => state.beads); 
     const { showConfirm, showToast, setShowLogin } = useUIStore();
 
-    // 首次挂载时从 API 获取珠子库和类别库
+    // Load bead library and category library from API on first mount
     useEffect(() => {
         fetch('/api/bead')
             .then(res => res.json())
@@ -90,37 +90,37 @@ export default function BeadLibrary() {
 
   const handleReset = () => {
       showConfirm({
-          title: '清空舞台',
-          message: '确定要清空舞台重新设计吗？当前进度将丢失。',
+          title: 'Clear Stage',
+          message: 'Are you sure you want to clear the stage and redesign? Current progress will be lost.',
           onConfirm: () => reset()
       });
   };
 
   const handleSave = () => {
       if (!isLoggedIn) {
-          // 如果用户未登录，打开登录框
+          // If user is not logged in, open login modal
           setShowLogin(true);
           return;
       }
       
       if (activeBeads.length === 0) {
-          showToast('请先添加珠子才能保存设计', 'error');
+          showToast('Please add beads before saving the design', 'error');
           return;
       }
       
       useStore.getState().saveDesign();
-      showToast('设计已保存！', 'success');
+      showToast('Design saved successfully!', 'success');
   };
   
   const handleCompleteDesign = () => {
     if (!isLoggedIn) {
-      // 与Header组件保持一致，直接打开登录模态框
+      // Consistent with Header component, directly open login modal
       setShowLogin(true);
       return;
     }
     
     if (activeBeads.length === 0) {
-      alert('请至少添加一颗珠子才能完成设计');
+      alert('Please add at least one bead to complete the design');
       return;
     }
     

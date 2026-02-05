@@ -393,12 +393,12 @@ function AdminPage() {
 
   const handleDeleteCategory = (id: string) => {
     if (["all", "in-use"].includes(id)) {
-      showToast("系统分类无法删除", "error");
+      showToast("System categories cannot be deleted", "error");
       return;
     }
     showConfirm({
       title: "删除分类",
-      message: "确定删除此分类吗？关联的珠子可能无法正确显示。",
+      message: "Are you sure you want to delete this category? Associated beads may not display correctly.",
       onConfirm: async () => {
         try {
           showLoading({ message: '正在删除类别...' });
@@ -413,10 +413,10 @@ function AdminPage() {
             await refreshCategories();
             showToast('分类已删除', 'success');
           } else {
-            showToast(data.error || '删除失败', 'error');
+            showToast(data.error || 'Deletion failed', 'error');
           }
         } catch {
-          showToast('网络错误，删除失败', 'error');
+          showToast('Network error, deletion failed', 'error');
         } finally {
           hideLoading();
         }
