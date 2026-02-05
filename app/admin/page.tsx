@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { useUIStore } from '@/lib/uiStore';
 import { Trash2, Upload, Plus, Image as ImageIcon, Edit2, X, Tags, Check } from 'lucide-react';
@@ -14,6 +14,14 @@ export default function AdminPage() {
   } = useStore();
   
   const { showToast, showConfirm } = useUIStore();
+  
+  // 修复 hydration 错误：使用客户端状态确保一致性
+  const [clientLibraryLength, setClientLibraryLength] = useState<number>(library.length);
+  
+  useEffect(() => {
+    // 在客户端更新真实的库长度
+    setClientLibraryLength(library.length);
+  }, [library.length]);
   
   // Bead State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -311,7 +319,7 @@ export default function AdminPage() {
 
       {/* List Section */}
       <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            当前素材库列表 ({library.length})
+            当前素材库列表 ({clientLibraryLength})
             <span className="text-sm font-normal text-gray-400 ml-2">点击卡片可进行编辑</span>
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">

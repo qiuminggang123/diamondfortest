@@ -1,37 +1,197 @@
-# AURA LOOP (Yang Ge Shi Tou)
+# Diamond2 - AURA LOOP 珠串设计平台
 
-## Project Description
-A custom bead bracelet design platform built with Next.js, Pixi.js, and Zustand. Users can customize bracelets by adding beads from a library, visualising them on a 2D stage with physics-like animations, and managing their design.
+一个现代化的珠串手链定制设计平台，基于 Next.js 14 和 React 18 构建。
 
-## Features
-- **Visual Stage**: Interactive canvas using Pixi.js. Beads animate into place.
-- **Auto-Adjustment**: Bracelet circumference calculates automatically.
-- **Bead Library**: Filter by category, search, and add beads.
-- **Drag & Drop**: Remove beads by dragging them away.
-- **Responsive**: Mobile-adaptive layout.
-- **Admin**: Simple `/admin` route to import custom bead JSON.
+## 🚀 特性
 
-## Tech Stack
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **State Management**: Zustand
-- **Graphics**: Pixi.js (@pixi/react)
-- **Animation**: Framer Motion (UI), Pixi Ticker (Canvas)
+- **实时设计预览**：使用 Pixi.js 实现流畅的 2D 珠串渲染
+- **智能布局算法**：自动计算手链周长和珠子排列
+- **拖拽交互**：直观的珠子添加和位置调整
+- **响应式设计**：完美适配桌面和移动设备
+- **管理员后台**：完整的素材管理和订单处理系统
+- **用户认证**：基于 NextAuth.js 的安全登录系统
 
-## Getting Started
+## 🛠️ 技术栈
 
-1.  Install dependencies:
-    ```bash
-    npm install
-    ```
+- **前端框架**：Next.js 14 (App Router)
+- **语言**：TypeScript
+- **状态管理**：Zustand
+- **UI 库**：Tailwind CSS + Framer Motion
+- **图形引擎**：Pixi.js
+- **后端**：Next.js API Routes
+- **数据库**：PostgreSQL (通过 Prisma ORM)
+- **认证**：NextAuth.js
+- **部署**：Vercel
 
-2.  Run the development server:
-    ```bash
-    npm run dev
-    ```
+## 📋 环境要求
 
-3.  Open [http://localhost:3000](http://localhost:3000)
+- Node.js >= 18
+- npm >= 8
 
-## Admin
-Visit `/admin` to import custom bead data.
+## 🔧 本地开发
+
+### 1. 克隆项目
+
+```bash
+git clone <repository-url>
+cd diamond2
+```
+
+### 2. 安装依赖
+
+```bash
+npm install
+```
+
+### 3. 环境变量配置
+
+创建 `.env.local` 文件：
+
+```env
+# 数据库连接
+DATABASE_URL=your_database_url
+
+# NextAuth 配置
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_secret_key
+
+# Resend 邮件服务（可选）
+RESEND_API_KEY=your_resend_api_key
+```
+
+### 4. 数据库设置
+
+```bash
+# 生成 Prisma Client
+npx prisma generate
+
+# 运行迁移
+npx prisma migrate dev --name init
+
+# （可选）填充初始数据
+npm run seed
+```
+
+### 5. 启动开发服务器
+
+```bash
+npm run dev
+```
+
+访问 [http://localhost:3000](http://localhost:3000)
+
+## 🎯 使用指南
+
+### 用户功能
+1. 浏览珠子库，按类别筛选
+2. 点击珠子添加到设计区
+3. 拖拽调整珠子顺序和位置
+4. 实时查看手链周长和总价
+5. 保存设计或下单制作
+
+### 管理员功能
+访问 `/admin` 页面：
+- 管理珠子素材库
+- 处理用户订单
+- 管理商品分类
+- 查看系统统计
+
+## 🐛 常见问题
+
+### 1. Hydration 错误
+如果遇到服务端和客户端渲染不一致的问题：
+- 检查组件是否正确使用了客户端指令
+- 确保状态在服务端和客户端保持一致
+- 查看控制台具体错误信息
+
+### 2. localStorage 存储超限 (QuotaExceededError)
+当出现存储空间不足错误时：
+
+**临时解决方案：**
+在浏览器控制台执行：
+```javascript
+// 清理所有相关存储
+Object.keys(localStorage).filter(k => k.includes('diamond-store')).forEach(k => localStorage.removeItem(k))
+
+// 或者清空所有存储（谨慎使用）
+localStorage.clear()
+```
+
+**长期解决方案：**
+项目已优化存储策略，新版本只会存储必要的自定义数据，不再存储完整的图片数据。
+
+### 3. 数据库连接问题
+- 确认 `.env.local` 中的 `DATABASE_URL` 配置正确
+- 检查数据库服务是否正常运行
+- 运行 `npx prisma migrate status` 查看迁移状态
+
+### 4. 构建失败
+- 确保 Node.js 版本 >= 18
+- 清理 node_modules 并重新安装
+- 检查 TypeScript 类型错误
+
+## 📁 项目结构
+
+```
+diamond2/
+├── app/                    # Next.js App Router 页面
+│   ├── admin/             # 管理员后台
+│   ├── api/               # API 路由
+│   └── ...                # 其他页面
+├── components/            # React 组件
+│   ├── BeadLibrary.tsx    # 珠子库组件
+│   ├── PixiStage.tsx      # Pixi.js 渲染舞台
+│   └── ...                # 其他组件
+├── lib/                   # 核心库文件
+│   ├── store.ts          # Zustand 状态管理
+│   ├── types.ts          # TypeScript 类型定义
+│   └── ...               # 其他工具函数
+├── prisma/                # Prisma 数据库 schema
+├── public/                # 静态资源
+└── scripts/               # 工具脚本
+```
+
+## 🚀 部署
+
+### Vercel 部署
+
+1. 推送代码到 GitHub
+2. 在 Vercel 导入项目
+3. 配置环境变量
+4. 部署完成！
+
+### 环境变量配置（生产环境）
+
+```env
+DATABASE_URL=your_production_database_url
+NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_SECRET=your_production_secret
+RESEND_API_KEY=your_production_resend_key
+```
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+MIT License
+
+## 🔧 开发工具脚本
+
+```bash
+# 开发模式
+npm run dev
+
+# 生产构建
+npm run build
+
+# 代码格式化
+npm run lint
+
+# 数据库重置
+npm run db:reset
+
+# 填充初始数据
+npm run seed
+```
