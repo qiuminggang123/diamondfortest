@@ -15,7 +15,7 @@ export default function AddressPage() {
       router.push('/?showLogin=1');
     }
   }, [status, router]);
-  if (status === "loading") return <div className="p-8 text-center">加载中...</div>;
+  if (status === "loading") return <div className="p-8 text-center">Loading...</div>;
   if (!isLoggedIn) return null;
   return (
     <main className="min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}

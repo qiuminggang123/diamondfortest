@@ -51,12 +51,13 @@ async function initializeDatabase() {
   try {
     // 创建珠子类别
     const categories = [
-      { id: 'crystal', name: '白水晶' },
-      { id: 'amethyst', name: '紫水晶' },
-      { id: 'citrine', name: '黄水晶' },
-      { id: 'rose', name: '粉水晶' },
-      { id: 'tea', name: '茶水晶' },
-      { id: 'other', name: '其他' },
+      { id: 'crystal', name: 'Crystal' },
+      { id: 'amethyst', name: 'Amethyst' },
+      { id: 'citrine', name: 'Citrine' },
+      { id: 'rose', name: 'Rose Quartz' },
+      { id: 'tea', name: 'Smoky Quartz' },
+      { id: 'other', name: 'Other' },
+
     ];
     
     for (const category of categories) {

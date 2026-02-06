@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "未登录" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
     const user = await prisma.user.findUnique({
@@ -17,8 +17,8 @@ export async function GET() {
     
     return NextResponse.json({ address: user?.addressInfo || null });
   } catch (error) {
-    console.error('获取地址信息失败:', error);
-    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
+    console.error('Failed to fetch address information:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     
     const { address, realName, phone } = await req.json();
     if (!address || !realName || !phone) {
-      return NextResponse.json({ error: "参数缺失" }, { status: 400 });
+      return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
     
     const user = await prisma.user.findUnique({ 
@@ -42,16 +42,16 @@ export async function POST(req: Request) {
     });
     
     if (!user) {
-      return NextResponse.json({ error: "用户不存在" }, { status: 404 });
+      return NextResponse.json({ error: "User does not exist" }, { status: 404 });
     }
     
-    // 更新User表冗余字段
+    // Update redundant fields in User table
     await prisma.user.update({
       where: { email: session.user.email },
       data: { address, realName, phone },
     });
     
-    // 更新/创建Address表
+    // Update/Create Address table
     await prisma.address.upsert({
       where: { userId: user.id },
       update: { address, realName, phone },
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('保存地址信息失败:', error);
-    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
+    console.error('Failed to save address information:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+} // 添加缺失的闭合大括号

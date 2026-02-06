@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const INITIAL_LIBRARY = [
   {
     id: '1',
-    name: '白水晶',
+    name: 'Clear Quartz',
     image: 'https://public.blob.vercel-storage.com/e2fybWFuL2Fzc2V0cy9pbWFnZXMvY3J5c3RhbC1iZWFkcy9jcnlzdGFsMS5qcGctLVNOMjhBYm5QaWxXVzN0R0FqUm9LQUFhQVE1VW1Qc3dLWWZ6VUdZSzN5Z2RBQV8_mimeType-image___-C2GAXK8knC7393Nl44U6a4qJ4N15F7.png',
     size: 8,
     type: 'crystal',
@@ -15,7 +15,7 @@ const INITIAL_LIBRARY = [
   },
   {
     id: '2',
-    name: '紫水晶',
+    name: 'Amethyst',
     image: 'https://public.blob.vercel-storage.com/e2fybWFuL2Fzc2V0cy9pbWFnZXMvY3J5c3RhbC1iZWFkcy9jcnlzdGFsMi5qcGctLVNOMjhBYm5QaWxXVzN0R0FqUm9LQUFhQVE1VW1Qc3dLWWZ6VUdZSzN5Z2RBQV8_mimeType-image___-C2GAXK8knC7393Nl44U6a4qJ4N15F7.png',
     size: 8,
     type: 'amethyst',
@@ -24,7 +24,7 @@ const INITIAL_LIBRARY = [
   },
   {
     id: '3',
-    name: '黄水晶',
+    name: 'Citrine',
     image: 'https://public.blob.vercel-storage.com/e2fybWFuL2Fzc2V0cy9pbWFnZXMvY3J5c3RhbC1iZWFkcy9jcnlzdGFsMy5qcGctLVNOMjhBYm5QaWxXVzN0R0FqUm9LQUFhQVE1VW1Qc3dLWWZ6VUdZSzN5Z2RBQV8_mimeType-image___-C2GAXK8knC7393Nl44U6a4qJ4N15F7.png',
     size: 8,
     type: 'citrine',
@@ -33,7 +33,7 @@ const INITIAL_LIBRARY = [
   },
   {
     id: '4',
-    name: '粉水晶',
+    name: 'Rose Quartz',
     image: 'https://public.blob.vercel-storage.com/e2fybWFuL2Fzc2V0cy9pbWFnZXMvY3J5c3RhbC1iZWFkcy9jcnlzdGFsNC5qcGctLVNOMjhBYm5QaWxXVzN0R0FqUm9LQUFhQVE1VW1Qc3dLWWZ6VUdZSzN5Z2RBQV8_mimeType-image___-C2GAXK8knC7393Nl44U6a4qJ4N15F7.png',
     size: 8,
     type: 'rose',
@@ -42,7 +42,7 @@ const INITIAL_LIBRARY = [
   },
   {
     id: '5',
-    name: '茶水晶',
+    name: 'Smoky Quartz',
     image: 'https://public.blob.vercel-storage.com/e2fybWFuL2Fzc2V0cy9pbWFnZXMvY3J5c3RhbC1iZWFkcy9jcnlzdGFsNS5qcGctLVNOMjhBYm5QaWxXVzN0R0FqUm9LQUFhQVE1VW1Qc3dLWWZ6VUdZSzN5Z2RBQV8_mimeType-image___-C2GAXK8knC7393Nl44U6a4qJ4N15F7.png',
     size: 8,
     type: 'tea',
@@ -61,19 +61,19 @@ const INITIAL_LIBRARY = [
 ];
 
 async function main() {
-  console.log('开始导入初始珠子数据...');
+  console.log('Starting to import initial bead data...');
 
-  // 清理可能存在的旧数据
+  // Clean up any existing old data
   await prisma.bead.deleteMany({});
   
-  // 创建或更新珠子类别
+  // Create or update bead categories
   const categories = [
-    { id: 'crystal', name: '白水晶' },
-    { id: 'amethyst', name: '紫水晶' },
-    { id: 'citrine', name: '黄水晶' },
-    { id: 'rose', name: '粉水晶' },
-    { id: 'tea', name: '茶水晶' },
-    { id: 'other', name: '其他' },
+    { id: 'crystal', name: 'Crystal' },
+    { id: 'amethyst', name: 'Amethyst' },
+    { id: 'citrine', name: 'Citrine' },
+    { id: 'rose', name: 'Rose Quartz' },
+    { id: 'tea', name: 'Smoky Quartz' },
+    { id: 'other', name: 'Other' },
   ];
   
   for (const category of categories) {
@@ -88,7 +88,7 @@ async function main() {
     console.log(`确保分类存在: ${category.name} (ID: ${category.id})`);
   }
 
-  // 创建初始珠子数据
+  // Create initial bead data
   for (const beadData of INITIAL_LIBRARY) {
     await prisma.bead.upsert({
       where: { id: beadData.id },
@@ -103,19 +103,19 @@ async function main() {
         dominantColor: beadData.dominantColor,
       },
     });
-    console.log(`创建或更新珠子: ${beadData.name} (ID: ${beadData.id})`);
+    console.log(`Created or updated bead: ${beadData.name} (ID: ${beadData.id})`);
   }
 
-  console.log('初始珠子数据导入完成');
+  console.log('Initial bead data import completed');
 }
 
 main()
   .then(async () => {
-    console.log('Seed 脚本执行成功');
+    console.log('Seed script executed successfully');
     await prisma.$disconnect();
   })
   .catch(async (e) => { 
-    console.error('Seed 脚本执行出错:', e); 
+    console.error('Seed script execution error:', e); 
     await prisma.$disconnect();
     process.exit(1); 
   });

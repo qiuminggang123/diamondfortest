@@ -319,17 +319,17 @@ export default function DesignConfirmationModal({
             <h3 className="font-semibold mb-2">基本信息</h3>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>珠子数量:</span>
-                <span>{beads.length} 颗</span>
+                <span>Bead Count:</span>
+                <span>{beads.length} pcs</span>
               </div>
               <div className="flex justify-between">
-                <span>手围尺寸:</span>
+                <span>Wrist Size:</span>
                 <span>{circumference} cm</span>
               </div>
               
-              {/* 数量选择器 */}
+              {/* Quantity Selector */}
               <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-                <span>购买数量:</span>
+                <span>Quantity:</span>
                 <div className="flex items-center">
                   <button 
                     onClick={decreaseQuantity}
@@ -350,8 +350,8 @@ export default function DesignConfirmationModal({
               </div>
               
               <div className="flex justify-between font-bold text-lg">
-                <span>总价:</span>
-                <span className="text-red-500">¥{calculatedTotalPrice.toFixed(2)}</span>
+                <span>Total:</span>
+                <span className="text-red-500">£{calculatedTotalPrice.toFixed(2)}</span>
               </div>
             </div>
           </div>

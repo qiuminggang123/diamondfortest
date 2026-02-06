@@ -36,12 +36,13 @@ async function main() {
 
 function getCategoryName(type: string) {
   const map: Record<string, string> = {
-    crystal: '白水晶',
-    amethyst: '紫水晶',
-    citrine: '黄水晶',
-    rose: '粉水晶',
-    tea: '茶水晶',
-    other: '其他',
+    crystal: 'Crystal',
+    amethyst: 'Amethyst',
+    citrine: 'Citrine',
+    rose: 'Rose Quartz',
+    tea: 'Smoky Quartz',
+    other: 'Other',
+
   };
   return map[type] || type;
 }

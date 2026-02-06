@@ -10,19 +10,19 @@ const IMG_TEA_REAL = '/images/tea-bead.svg'; // Dark Brown/Black (Smokey Quartz)
 
 export const INITIAL_CATEGORIES = [
   { id: 'all', name: 'All' },
-  { id: 'in-use', name: '正在使用' },
-  { id: 'crystal', name: '白水晶' },
-  { id: 'amethyst', name: '紫水晶' },
-  { id: 'citrine', name: '黄水晶' },
-  { id: 'rose', name: '粉水晶' },
-  { id: 'tea', name: '茶水晶' },
-  { id: 'other', name: '其他' },
+  { id: 'in-use', name: 'In Use' },
+  { id: 'crystal', name: 'Crystal' },
+  { id: 'amethyst', name: 'Amethyst' },
+  { id: 'citrine', name: 'Citrine' },
+  { id: 'rose', name: 'Rose Quartz' },
+  { id: 'tea', name: 'Smoky Quartz' },
+  { id: 'other', name: 'Other' },
 ];
 
 export const INITIAL_LIBRARY: BeadType[] = [
   {
     id: 'b1',
-    name: '乌拉圭紫水晶',
+    name: 'Uruguay Amethyst',
     type: 'amethyst',
     size: 10,
     price: 24,
@@ -31,7 +31,7 @@ export const INITIAL_LIBRARY: BeadType[] = [
   },
   {
     id: 'b2',
-    name: '巴西紫水晶',
+    name: 'Brazil Amethyst',
     type: 'amethyst',
     size: 8,
     price: 18,
@@ -40,7 +40,7 @@ export const INITIAL_LIBRARY: BeadType[] = [
   },
   {
     id: 'b3',
-    name: '纯净白水晶',
+    name: 'Pure Crystal',
     type: 'crystal',
     size: 10,
     price: 15,
@@ -49,7 +49,7 @@ export const INITIAL_LIBRARY: BeadType[] = [
   },
   {
     id: 'b4',
-    name: '金运黄水晶',
+    name: 'Golden Citrine',
     type: 'citrine',
     size: 12,
     price: 45,
@@ -58,7 +58,7 @@ export const INITIAL_LIBRARY: BeadType[] = [
   },
   {
     id: 'b5',
-    name: '马达加斯加粉晶',
+    name: 'Madagascar Rose Quartz',
     type: 'rose',
     size: 10,
     price: 28,
@@ -67,7 +67,7 @@ export const INITIAL_LIBRARY: BeadType[] = [
   },
   {
     id: 'b6',
-    name: '通透茶晶',
+    name: 'Transparent Smoky Quartz',
     type: 'tea',
     size: 10,
     price: 20,

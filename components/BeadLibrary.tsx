@@ -149,7 +149,7 @@ export default function BeadLibrary() {
                 } px-4 py-2 rounded-lg text-sm font-medium shadow-sm`}
              >
                  <Save size={16} />
-                 保存
+                 Save
                  <Ripple color="rgba(255, 255, 255, 0.3)" />
              </button>
 
@@ -165,7 +165,7 @@ export default function BeadLibrary() {
             } px-4 py-2 rounded-lg text-sm font-medium`}
          >
              <ShoppingCart size={16} />
-             完成设计
+             Complete Design
              <Ripple />
          </button>
       </div>
@@ -176,7 +176,7 @@ export default function BeadLibrary() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
-                placeholder="输入珠子名称进行搜索，如白水晶/海蓝宝..." 
+                placeholder="Search bead names, e.g. crystal/aquamarine..." 
                 className="w-full pl-9 pr-4 py-2 bg-white rounded-full text-sm outline-none border border-transparent focus:border-gray-200"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -246,7 +246,8 @@ export default function BeadLibrary() {
                         
                         <div className="text-center w-full min-w-0">
                             <div className="text-xs font-bold text-gray-800 truncate w-full">{bead.name}</div>
-                            <div className="text-[10px] text-gray-400 truncate w-full">{bead.size}mm - £ {bead.price}</div>
+                            <div className="text-[10px] text-gray-400 truncate w-full">{bead.size}mm - £{bead.price}</div>
+
                         </div>
                     </motion.div>
                 ))}

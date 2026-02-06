@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!user) {
-      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+      return Response.json({ success: false, error: 'User does not exist' }, { status: 404 });
     }
 
     const designs = await prisma.design.findMany({
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       include: {
         beads: {
           include: {
-            bead: true // 包含珠子详情
+            bead: true // Include bead details
           }
         }
       },
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+      return Response.json({ success: false, error: 'User does not exist' }, { status: 404 });
     }
 
     // 创建设计
@@ -174,7 +174,7 @@ export async function PUT(req: NextRequest) {
     });
 
     if (!user) {
-      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+      return Response.json({ success: false, error: 'User does not exist' }, { status: 404 });
     }
 
     // 更新设计基本信息
@@ -270,7 +270,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (!user) {
-      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+      return Response.json({ success: false, error: 'User does not exist' }, { status: 404 });
     }
 
     // 删除设计（关联的designBeads会通过onDelete: Cascade自动删除）

@@ -95,7 +95,7 @@ async function uploadAndConvertBeadImages() {
     const initialBeads = [
       {
         id: 'b1',
-        name: '乌拉圭紫水晶',
+        name: 'Uruguay Amethyst',
         type: 'amethyst',
         size: 10,
         price: 24,
@@ -104,7 +104,7 @@ async function uploadAndConvertBeadImages() {
       },
       {
         id: 'b2',
-        name: '巴西紫水晶',
+        name: 'Brazil Amethyst',
         type: 'amethyst',
         size: 8,
         price: 18,
@@ -113,7 +113,7 @@ async function uploadAndConvertBeadImages() {
       },
       {
         id: 'b3',
-        name: '纯净白水晶',
+        name: 'Pure Crystal',
         type: 'crystal',
         size: 10,
         price: 15,
@@ -122,7 +122,7 @@ async function uploadAndConvertBeadImages() {
       },
       {
         id: 'b4',
-        name: '金运黄水晶',
+        name: 'Golden Citrine',
         type: 'citrine',
         size: 12,
         price: 45,
@@ -131,7 +131,7 @@ async function uploadAndConvertBeadImages() {
       },
       {
         id: 'b5',
-        name: '马达加斯加粉晶',
+        name: 'Madagascar Rose Quartz',
         type: 'rose',
         size: 10,
         price: 28,
@@ -140,7 +140,7 @@ async function uploadAndConvertBeadImages() {
       },
       {
         id: 'b6',
-        name: '通透茶晶',
+        name: 'Transparent Smoky Quartz',
         type: 'tea',
         size: 10,
         price: 20,

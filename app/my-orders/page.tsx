@@ -91,7 +91,7 @@ export default function MyOrdersPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Total Price</p>
-                    <p className="font-medium">¥{order.totalPrice.toFixed(2)}</p>
+                    <p className="font-medium">£{order.totalPrice.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Order Date</p>

@@ -39,7 +39,7 @@ function AdminPage() {
     updateCategory,
   } = useStore();
 
-  // 登录校验：未登录跳转首页并弹出登录弹窗
+  // Login verification: Redirect to homepage and pop up login modal if not logged in
   useEffect(() => {
     if (status === "loading") return;
     if (!isLoggedIn) {
@@ -47,7 +47,7 @@ function AdminPage() {
     }
   }, [isLoggedIn, status]);
 
-  // 珠子数据远程加载
+  // Remote loading of bead data
   useEffect(() => {
     if (!isLoggedIn) return;
     fetch('/api/bead')
@@ -59,7 +59,7 @@ function AdminPage() {
       });
   }, [setLibrary, isLoggedIn]);
 
-  // 类别数据远程加载
+  // Remote loading of category data
   useEffect(() => {
     if (!isLoggedIn) return;
     const loadCategories = async () => {
@@ -73,7 +73,7 @@ function AdminPage() {
           }
         }
       } catch (error) {
-        console.error('加载类别数据失败:', error);
+        console.error('Failed to load category data:', error);
       }
     };
     loadCategories();
@@ -85,12 +85,12 @@ function AdminPage() {
 
   const { showToast, showConfirm, showLoading, hideLoading } = useUIStore();
 
-  // 添加当前活动标签的状态
+  // Adding current active tab state
   const [activeTab, setActiveTab] = useState<'beads' | 'materials' | 'orders'>('beads');
 
   // Bead State
   const [editingId, setEditingId] = useState<string | null>(null);
-  // 获取第一个有效分类id
+  // Get the first valid category id
   const getDefaultCategoryId = () => {
     const valid = categories.filter(cat => !["all", "in-use"].includes(cat.id));
     return valid.length > 0 ? valid[0].id : "";
@@ -112,7 +112,7 @@ function AdminPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  // 加载订单数据
+  // Load order data
   const loadOrders = async () => {
     setLoadingOrders(true);
     try {
@@ -121,17 +121,17 @@ function AdminPage() {
       if (data.success) {
         setOrders(data.orders || []);
       } else {
-        showToast(data.message || '获取订单失败', 'error');
+        showToast(data.message || 'Failed to get orders', 'error');
       }
     } catch (err) {
-      console.error('获取订单失败:', err);
-      showToast('获取订单失败', 'error');
+      console.error('Failed to get orders:', err);
+      showToast('Failed to get orders', 'error');
     } finally {
       setLoadingOrders(false);
     }
   };
 
-  // 更新订单状态
+  // Update order status
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const res = await fetch('/api/order', {
@@ -145,21 +145,21 @@ function AdminPage() {
         setOrders(prev => prev.map(order => 
           order.id === orderId ? { ...order, status: newStatus } : order
         ));
-        showToast(`订单状态已更新为${newStatus === 'PENDING' ? '待发货' : '已发货'}`, 'success');
+        showToast(`Order status updated to ${newStatus === 'PENDING' ? 'Pending Shipment' : 'Shipped'}`, 'success');
       } else {
         if (res.status === 401) {
-          showToast('权限不足或会话过期，请确认您是管理员身份并刷新页面重试', 'error');
+          showToast('Insufficient permissions or session expired. Please confirm you are an administrator and refresh the page to try again', 'error');
         } else {
-          showToast(data.message || '更新订单状态失败', 'error');
+          showToast(data.message || 'Failed to update order status', 'error');
         }
       }
     } catch (err) {
-      console.error('更新订单状态失败:', err);
-      showToast('网络错误，更新订单状态失败', 'error');
+      console.error('Failed to update order status:', err);
+      showToast('Network error, failed to update order status', 'error');
     }
   };
 
-  // 初始加载订单
+  // Initial order loading
   useEffect(() => {
     if (isLoggedIn) {
       loadOrders();
@@ -171,14 +171,14 @@ function AdminPage() {
     if (!file) return;
     
     try {
-      showLoading({ message: '正在上传图片...' });
+      showLoading({ message: 'Uploading image...' });
       
-      // 上传到 vercel blob
+      // Upload to vercel blob
       const imageUrl = await uploadImageToBlob(file);
       
       // Calculate Dominant Color
       const img = new Image();
-      // 设置 crossOrigin 属性来处理跨域图片
+      // Set crossOrigin attribute to handle cross-origin images
       img.crossOrigin = 'anonymous';
       
       img.onload = () => {
@@ -214,29 +214,29 @@ function AdminPage() {
             setNewBead((prev) => ({ ...prev, image: imageUrl }));
           }
         } catch (canvasError) {
-          console.warn('无法提取主色调，使用默认颜色:', canvasError);
+          console.warn('Unable to extract dominant color, using default color:', canvasError);
           setNewBead((prev) => ({ ...prev, image: imageUrl }));
         } finally {
           hideLoading();
         }
       };
       
-      // 添加错误处理
+      // Add error handling
       img.onerror = (error) => {
-        console.warn('图片加载失败，跳过主色调提取:', error);
+        console.warn('Image loading failed, skipping dominant color extraction:', error);
         setNewBead((prev) => ({ ...prev, image: imageUrl }));
         hideLoading();
       };
       
       img.src = imageUrl;
     } catch (uploadError) {
-      console.error('图片上传失败:', uploadError);
-      showToast('图片上传失败，请重试', 'error');
+      console.error('Image upload failed:', uploadError);
+      showToast('Image upload failed, please try again', 'error');
       hideLoading();
     }
   };
 
-  // 刷新素材库列表
+  // Refresh material library list
   const refreshLibrary = async () => {
     const res = await fetch('/api/bead');
     const data = await res.json();
@@ -253,7 +253,7 @@ function AdminPage() {
 
     try {
       showLoading({ 
-        message: editingId ? '正在更新珠子...' : '正在添加珠子...'
+        message: editingId ? 'Updating bead...' : 'Adding bead...'
       });
 
       if (editingId) {
@@ -267,10 +267,10 @@ function AdminPage() {
         if (res.ok && data.success) {
           updateLibraryItem({ ...newBead, id: editingId });
           await refreshLibrary();
-          showToast("已保存修改", "success");
+          showToast("Changes saved", "success");
           resetForm();
         } else {
-          showToast(data.message || "保存失败", "error");
+          showToast(data.message || "Save failed", "error");
         }
       } else {
         // Add new（POST）
@@ -281,16 +281,16 @@ function AdminPage() {
         });
         const data = await res.json();
         if (res.ok && data.success && data.data) {
-          addToLibrary(data.data as BeadType); // 后端返回新建对象
+          addToLibrary(data.data as BeadType); // Backend returns newly created object
           await refreshLibrary();
-          showToast("已添加至素材库", "success");
+          showToast("Added to material library", "success");
           resetForm();
         } else {
-          showToast(data.message || "添加失败", "error");
+          showToast(data.message || "Add failed", "error");
         }
       }
     } catch (e) {
-      showToast(editingId ? "网络错误，保存失败" : "网络错误，添加失败", "error");
+      showToast(editingId ? "Network error, save failed" : "Network error, add failed", "error");
     } finally {
       hideLoading();
     }
@@ -322,7 +322,7 @@ function AdminPage() {
     });
   };
 
-  // 刷新分类列表
+  // Refresh category list
   const refreshCategories = async () => {
     const res = await fetch('/api/category');
     const data = await res.json();
@@ -338,7 +338,7 @@ function AdminPage() {
   const handleAddCategory = async () => {
     if (!catNameInput.trim()) return;
     try {
-      showLoading({ message: '正在添加类别...' });
+      showLoading({ message: 'Adding category...' });
       const res = await fetch('/api/category', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -348,13 +348,13 @@ function AdminPage() {
       if (res.ok && data.success && data.data) {
         addCategory(data.data);
         await refreshCategories();
-        showToast('分类已添加', 'success');
+        showToast('Category added', 'success');
         setCatNameInput("");
       } else {
-        showToast(data.error || '添加失败', 'error');
+        showToast(data.error || 'Add failed', 'error');
       }
     } catch {
-      showToast('网络错误，添加失败', 'error');
+      showToast('Network error, add failed', 'error');
     } finally {
       hideLoading();
     }
@@ -363,7 +363,7 @@ function AdminPage() {
   const handleUpdateCategory = async () => {
     if (!editingCatId || !catNameInput.trim()) return;
     try {
-      showLoading({ message: '正在更新类别...' });
+      showLoading({ message: 'Updating category...' });
       const res = await fetch('/api/category', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -373,14 +373,14 @@ function AdminPage() {
       if (res.ok && data.success && data.data) {
         updateCategory(data.data);
         await refreshCategories();
-        showToast('分类已修改', 'success');
+        showToast('Category updated', 'success');
         setEditingCatId(null);
         setCatNameInput("");
       } else {
-        showToast(data.error || '修改失败', 'error');
+        showToast(data.error || 'Update failed', 'error');
       }
     } catch {
-      showToast('网络错误，修改失败', 'error');
+      showToast('Network error, update failed', 'error');
     } finally {
       hideLoading();
     }
@@ -397,11 +397,11 @@ function AdminPage() {
       return;
     }
     showConfirm({
-      title: "删除分类",
+      title: "Delete category",
       message: "Are you sure you want to delete this category? Associated beads may not display correctly.",
       onConfirm: async () => {
         try {
-          showLoading({ message: '正在删除类别...' });
+          showLoading({ message: 'Deleting category...' });
           const res = await fetch('/api/category', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
@@ -411,7 +411,7 @@ function AdminPage() {
           if (res.ok && data.success) {
             removeCategory(id);
             await refreshCategories();
-            showToast('分类已删除', 'success');
+            showToast('Category deleted', 'success');
           } else {
             showToast(data.error || 'Deletion failed', 'error');
           }
@@ -427,21 +427,21 @@ function AdminPage() {
   if (!isLoggedIn) return null;
 
   return (
-    <main className="flex flex-col min-h-screen bg-gray-50 pt-14"> {/* 添加pt-14为Header留出空间 */}
+    <main className="flex flex-col min-h-screen bg-gray-50 pt-14"> {/* Adding pt-14 to leave space for Header */}
       <Header />
       <div className="p-8 max-w-6xl mx-auto w-full">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link href="/" className="hover:text-blue-600 transition-colors flex items-center gap-1">
             <Home className="w-4 h-4" />
-            首页
+            Home
           </Link>
           <ChevronRight className="w-4 h-4" />
-          <span className="text-gray-800 font-medium">管理后台</span>
+          <span className="text-gray-800 font-medium">Admin Dashboard</span>
         </nav>
         
         <h1 className="text-3xl font-bold mb-8 text-gray-800">
-          管理后台
+          Admin Dashboard
         </h1>
 
         {/* Tab Navigation */}
@@ -456,7 +456,7 @@ function AdminPage() {
           >
             <div className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
-              珠子管理
+              Bead Management
             </div>
           </button>
           <button
@@ -469,10 +469,10 @@ function AdminPage() {
           >
             <div className="flex items-center gap-2">
               <Tags className="w-4 h-4" />
-              类别管理
+              Category Management
             </div>
           </button>
-          {/* <button
+          <button
             className={`py-3 px-6 font-medium text-sm rounded-t-lg transition-colors ${
               activeTab === 'orders'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
@@ -482,9 +482,9 @@ function AdminPage() {
           >
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
-              订单管理
+              Order Management
             </div>
-          </button> */}
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -494,20 +494,20 @@ function AdminPage() {
           {activeTab === 'beads' && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-purple-600" /> 珠子管理
+                <Upload className="w-5 h-5 text-purple-600" /> Bead Management
               </h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Form Section */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200">
                   <h3 className="text-lg font-semibold mb-6">
-                    {editingId ? "编辑珠子" : "添加新珠子"}
+                    {editingId ? "Edit Bead" : "Add New Bead"}
                   </h3>
                   
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        珠子名称
+                        Bead Name
                       </label>
                       <input
                         type="text"
@@ -521,7 +521,7 @@ function AdminPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        分类
+                        Category
                       </label>
                       <select
                         className="w-full px-4 py-2 border rounded-lg"
@@ -543,7 +543,7 @@ function AdminPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          尺寸 (mm)
+                          Size (mm)
                         </label>
                         <input
                           type="number"
@@ -556,7 +556,8 @@ function AdminPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          价格 (元)
+                          Price (GBP)
+
                         </label>
                         <input
                           type="number"
@@ -574,14 +575,16 @@ function AdminPage() {
                         onClick={handleSubmit}
                         className={`flex-1 py-3 text-white rounded-lg font-medium transition shadow-md ${editingId ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
                       >
-                        {editingId ? "保存修改" : "确认添加至库"}
+                        {editingId ? "Save Changes" : "Add to Library"}
+
                       </button>
                       {editingId && (
                         <button
                           onClick={resetForm}
                           className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
                         >
-                          取消
+                          Cancel
+
                         </button>
                       )}
                     </div>
@@ -590,7 +593,7 @@ function AdminPage() {
 
                 {/* Image Upload Section */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-semibold mb-6">上传图片</h3>
+                  <h3 className="text-lg font-semibold mb-6">Upload Image</h3>
                   
                   <div className="space-y-6">
                     {/* Image Preview */}
@@ -614,13 +617,13 @@ function AdminPage() {
                           <div className="w-24 h-24 mx-auto bg-gray-200 rounded-full mb-2 flex items-center justify-center">
                             <ImageIcon className="w-12 h-12 opacity-30" />
                           </div>
-                          <p>支持 JPG, PNG, WEBP (建议透明背景)</p>
+                          <p>Support JPG, PNG, WEBP (transparent background recommended)</p>
                         </div>
                       )}
 
                       <label className="cursor-pointer bg-white border border-gray-300 px-6 py-2 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 shadow-sm">
                         <Upload size={18} />
-                        <span>{newBead.image ? "更换贴图" : "上传贴图"}</span>
+                        <span>{newBead.image ? "Change Texture" : "Upload Texture"}</span>
                         <input
                           type="file"
                           className="hidden"
@@ -629,7 +632,7 @@ function AdminPage() {
                         />
                       </label>
                       <p className="mt-2 text-xs text-gray-400">
-                        注意：贴图中必须包含横向水平的绳子穿过珠子中心
+                        Note: The texture must contain a horizontal rope passing through the center of the bead
                       </p>
                     </div>
                   </div>
@@ -640,9 +643,9 @@ function AdminPage() {
               {mounted ? (
                 <>
                   <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 mt-10">
-                    当前素材库列表 ({library.length})
+                    Current Material Library ({library.length})
                     <span className="text-sm font-normal text-gray-400 ml-2">
-                      点击卡片可进行编辑
+                      Click cards to edit
                     </span>
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -662,12 +665,12 @@ function AdminPage() {
                             onClick={(e) => {
                               e.stopPropagation(); // Prevent triggering edit
                               showConfirm({
-                                title: "删除素材",
-                                message: "确定要删除这个素材吗？",
+                                title: "Delete Material",
+                                message: "Are you sure you want to delete this material?",
                                 onConfirm: async () => {
                                   try {
-                                    showLoading({ message: '正在删除珠子...' }); // 显示加载模态框
-                                    // 删除素材（DELETE）
+                                    showLoading({ message: 'Deleting bead...' }); // Show loading modal
+                                    // Delete material（DELETE）
                                     const res = await fetch('/api/bead', {
                                       method: 'DELETE',
                                       headers: { 'Content-Type': 'application/json' },
@@ -677,14 +680,14 @@ function AdminPage() {
                                     if (data.success) {
                                       removeFromLibrary(item.id);
                                       await refreshLibrary();
-                                      showToast("素材已删除", "success");
+                                      showToast("Material deleted", "success");
                                     } else {
-                                      showToast(data.message || "删除失败", "error");
+                                      showToast(data.message || "Delete failed", "error");
                                     }
                                   } catch (error) {
-                                    showToast("网络错误，删除失败", "error");
+                                    showToast("Network error, delete failed", "error");
                                   } finally {
-                                    hideLoading(); // 隐藏加载模态框
+                                    hideLoading(); // Hide loading modal
                                   }
                                 },
                               });
@@ -700,12 +703,12 @@ function AdminPage() {
                           </h3>
                           <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
                             <span>{item.size}mm</span>
-                            <span className="text-blue-600 font-bold">¥{item.price}</span>
+                            <span className="text-blue-600 font-bold">£{item.price}</span>
                           </div>
                         </div>
                         {editingId === item.id && (
                           <div className="bg-green-100 text-green-700 text-xs text-center py-1 font-medium">
-                            正在编辑...
+                            Editing...
                           </div>
                         )}
                       </div>
@@ -714,7 +717,7 @@ function AdminPage() {
                 </>
               ) : (
                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2 mt-10">
-                  当前素材库列表 (...)
+                  Current Material Library (...)
                 </h2>
               )}
             </div>
@@ -724,27 +727,27 @@ function AdminPage() {
           {activeTab === 'materials' && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Tags className="w-5 h-5 text-purple-600" /> 类别管理
+                <Tags className="w-5 h-5 text-purple-600" /> Category Management
               </h2>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Add/Edit Category Section */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200">
                   <h3 className="text-lg font-semibold mb-6">
-                    {editingCatId ? "编辑类别" : "添加新类别"}
+                    {editingCatId ? "Edit Category" : "Add New Category"}
                   </h3>
                   
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        类别名称
+                        Category Name
                       </label>
                       <input
                         type="text"
                         className="w-full px-4 py-2 border rounded-lg"
                         value={catNameInput}
                         onChange={(e) => setCatNameInput(e.target.value)}
-                        placeholder="输入类别名称"
+                        placeholder="Enter category name"
                       />
                     </div>
 
@@ -753,7 +756,8 @@ function AdminPage() {
                         onClick={editingCatId ? handleUpdateCategory : handleAddCategory}
                         className={`flex-1 py-3 text-white rounded-lg font-medium transition shadow-md ${editingCatId ? "bg-green-600 hover:bg-green-700" : "bg-purple-600 hover:bg-purple-700"}`}
                       >
-                        {editingCatId ? "保存修改" : "添加类别"}
+                        {editingCatId ? "Save Changes" : "Add Category"}
+
                       </button>
                       {editingCatId && (
                         <button
@@ -763,7 +767,8 @@ function AdminPage() {
                           }}
                           className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition"
                         >
-                          取消
+                          Cancel
+
                         </button>
                       )}
                     </div>
@@ -772,7 +777,7 @@ function AdminPage() {
 
                 {/* Categories List */}
                 <div className="bg-white p-6 rounded-xl border border-gray-200">
-                  <h3 className="text-lg font-semibold mb-6">当前类别列表</h3>
+                  <h3 className="text-lg font-semibold mb-6">Current Categories List</h3>
                   
                   <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                     {categories
@@ -804,7 +809,7 @@ function AdminPage() {
                     
                     {categories.filter(cat => !["all", "in-use"].includes(cat.id)).length === 0 && (
                       <div className="text-center py-8 text-gray-500">
-                        暂无类别，请添加新类别
+                        No categories yet, please add new category
                       </div>
                     )}
                   </div>
@@ -817,41 +822,41 @@ function AdminPage() {
           {activeTab === 'orders' && (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-purple-600" /> 订单管理
+                <ShoppingCart className="w-5 h-5 text-purple-600" /> Order Management
               </h2>
 
               {loadingOrders ? (
-                <div className="text-center py-4">加载订单中...</div>
+                <div className="text-center py-4">Loading orders...</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总价</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">下单时间</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Time</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {orders.map((order) => (
                         <tr key={order.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.user?.name || order.user?.email || '未知用户'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">¥{order.totalPrice.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.user?.name || order.user?.email || 'Unknown user'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">£{order.totalPrice.toFixed(2)}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                               order.status === 'PENDING' 
                                 ? 'bg-yellow-100 text-yellow-800' 
                                 : 'bg-green-100 text-green-800'
                             }`}>
-                              {order.status === 'PENDING' ? '待发货' : '已发货'}
+                              {order.status === 'PENDING' ? 'Pending Shipment' : 'Shipped'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(order.createdAt).toLocaleString('zh-CN')}
+                            {new Date(order.createdAt).toLocaleString('en-US')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button
@@ -862,7 +867,7 @@ function AdminPage() {
                                   : 'text-green-600 hover:text-green-900'
                               }`}
                             >
-                              {order.status === 'PENDING' ? '标记为已发货' : '标记为待发货'}
+                              {order.status === 'PENDING' ? 'Mark as Shipped' : 'Mark as Pending Shipment'}
                             </button>
                             <button
                               onClick={() => {
@@ -871,7 +876,7 @@ function AdminPage() {
                               }}
                               className="text-gray-600 hover:text-gray-900"
                             >
-                              查看详情
+                              View Details
                             </button>
                           </td>
                         </tr>
@@ -880,7 +885,7 @@ function AdminPage() {
                   </table>
                   
                   {orders.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">暂无订单</div>
+                    <div className="text-center py-4 text-gray-500">No orders yet</div>
                   )}
                 </div>
               )}

@@ -56,25 +56,25 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 修改珠子
+// Update bead
 export async function PUT(req: NextRequest) {
   try {
     const { id, name, image, size, price, type, dominantColor } = await req.json();
-    if (!id || !name || !type || !size) return Response.json({ success: false, error: '缺少参数' }, { status: 400 });
+    if (!id || !name || !type || !size) return Response.json({ success: false, error: 'Missing parameters' }, { status: 400 });
     
-    // 验证 image 是有效的 URL
+    // Validate that image is a valid URL
     if (image && !isValidImageUrl(image)) {
-      return Response.json({ success: false, error: '无效的图片 URL' }, { status: 400 });
+      return Response.json({ success: false, error: 'Invalid image URL' }, { status: 400 });
     }
     
-    // 更新珠子信息，包括其价格
+    // Update bead information, including its price
     const updated = await prisma.bead.update({
       where: { id },
       data: {
         name,
         image,
         size,
-        price: price, // 直接更新珠子价格
+        price: price, // Directly update bead price
         categoryId: type,
         dominantColor: dominantColor ?? null,
       },
@@ -86,7 +86,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// 删除珠子
+// Delete bead
 export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();

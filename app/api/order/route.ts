@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       });
       
       if (!user) {
-        return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+        return Response.json({ success: false, error: 'User does not exist' }, { status: 404 });
       }
       
       orders = await prisma.order.findMany({
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return Response.json({ success: false, error: '用户不存在' }, { status: 404 });
+      return Response.json({ success: false, error: 'User does not exist' }, { status: 404 });
     }
 
     let finalDesignId: string;
@@ -209,7 +209,7 @@ export async function PUT(req: NextRequest) {
     const isAdmin = session.user.email === adminEmail;
 
     if (!isAdmin) {
-      return Response.json({ success: false, error: '权限不足' }, { status: 401 });
+      return Response.json({ success: false, error: 'Insufficient permissions' }, { status: 401 });
     }
 
     // 更新订单状态
@@ -244,7 +244,7 @@ export async function DELETE(req: NextRequest) {
     const isAdmin = session.user.email === adminEmail;
 
     if (!isAdmin) {
-      return Response.json({ success: false, error: '权限不足' }, { status: 401 });
+      return Response.json({ success: false, error: 'Insufficient permissions' }, { status: 401 });
     }
 
     // 删除订单

@@ -8,19 +8,19 @@ export default function Overlays() {
 
   return (
     <div className="absolute top-2 left-0 w-full px-4 flex justify-between items-start pointer-events-none z-40">
-      {/* 左侧：使用须知按钮 */}
+      {/* Left: Instructions button */}
       <button className="flex items-center gap-1 bg-red-600 text-white text-xs px-3 py-1.5 rounded-full shadow-sm pointer-events-auto">
         <HelpCircle size={14} />
-        <span className="font-bold">使用须知</span>
+        <span className="font-bold">Instructions</span>
       </button>
 
-      {/* 右侧：信息标签 */}
+      {/* Right: Info labels */}
       <div className="flex gap-2">
         <div className="bg-gray-100/90 backdrop-blur-sm text-gray-600 text-xs px-3 py-1.5 rounded-lg shadow-sm">
-          手围：{circumference} 厘米
+          Wrist Size: {circumference} cm
         </div>
         <div className="bg-gray-100/90 backdrop-blur-sm text-gray-600 text-xs px-3 py-1.5 rounded-lg shadow-sm">
-          总价：{totalPrice.toFixed(1)} 元
+          Total: £{totalPrice.toFixed(1)}
         </div>
       </div>
     </div>

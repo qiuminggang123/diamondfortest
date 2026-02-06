@@ -61,7 +61,7 @@ export const useStore = create<AppState>()(
       selectedBeadId: null,
       circumference: 12.0, // 默认12cm
       savedCircumference: 12.0,
-      totalPrice: 0, // 默认0元
+      totalPrice: 0, // 默认0英镑
 
 
       addBead: (beadType) => {
@@ -70,7 +70,7 @@ export const useStore = create<AppState>()(
         const currentTotalWidth = currentBeads.reduce((sum, b) => sum + b.size, 0);
         const nextTotalWidth = currentTotalWidth + beadType.size;
         if (nextTotalWidth / 10 > 25.01) {
-             useUIStore.getState().showToast('手围已达到最大限制 (25cm)，无法继续添加珠子。', 'error');
+             useUIStore.getState().showToast('Maximum wrist size limit (25cm) reached, cannot add more beads.', 'error');
              return;
         }
         // dominantColor优先用前端canvas同步计算

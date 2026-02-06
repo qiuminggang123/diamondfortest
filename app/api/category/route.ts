@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 修改类别
+// Update category
 export async function PUT(req: NextRequest) {
   try {
     const { id, name } = await req.json();
-    if (!id || !name) return Response.json({ success: false, error: '缺少参数' }, { status: 400 });
+    if (!id || !name) return Response.json({ success: false, error: 'Missing parameters' }, { status: 400 });
     const updated = await prisma.beadCategory.update({ where: { id }, data: { name } });
     return Response.json({ success: true, data: { id: updated.id, name: updated.name } });
   } catch (e) {
@@ -38,11 +38,11 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// 删除类别
+// Delete category
 export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();
-    if (!id) return Response.json({ success: false, error: '缺少id' }, { status: 400 });
+    if (!id) return Response.json({ success: false, error: 'Missing id' }, { status: 400 });
     await prisma.beadCategory.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (e) {
