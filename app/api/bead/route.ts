@@ -1,26 +1,29 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-
-// GET /api/bead 获取所有珠子及其类别
+// GET /api/bead 获取所有珠子实例及其类别，按sortOrder排序
 export async function GET(req: NextRequest) {
   try {
     const beads = await prisma.bead.findMany({
       include: {
         category: true,
       },
+      orderBy: {
+        sortOrder: 'asc'
+      }
     });
     
     // 映射数据以匹配前端接口
-    const mapped = beads.map(b => ({
+    const mapped = beads.map((b: any) => ({
       id: b.id,
       name: b.name,
       image: b.image,
       size: b.size,
-      price: b.price ?? 0,  // 使用珠子自身的价格
+      price: b.price ?? 0,
       type: b.categoryId,
       categoryName: b.category?.name ?? '',
       dominantColor: b.dominantColor ?? undefined,
+      sortOrder: b.sortOrder ?? 0  // 添加sortOrder字段
     }));
     return Response.json({ success: true, data: mapped });
   } catch (e) {
@@ -28,7 +31,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// 新增珠子
+// 新增珠子实例
 export async function POST(req: NextRequest) {
   try {
     const { name, image, size, price, type, dominantColor } = await req.json();
@@ -43,8 +46,8 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         image,
-        size,
-        price: price || 0,  // 直接存储珠子价格
+        size: parseFloat(size),
+        price: price || 0,
         categoryId: type,
         dominantColor: dominantColor ?? null,
       },
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Update bead
+// Update bead instance
 export async function PUT(req: NextRequest) {
   try {
     const { id, name, image, size, price, type, dominantColor } = await req.json();
@@ -73,8 +76,8 @@ export async function PUT(req: NextRequest) {
       data: {
         name,
         image,
-        size,
-        price: price, // Directly update bead price
+        size: parseFloat(size),
+        price: price,
         categoryId: type,
         dominantColor: dominantColor ?? null,
       },
@@ -86,11 +89,12 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// Delete bead
+// Delete bead instance
 export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();
     if (!id) return Response.json({ success: false, error: '缺少id' }, { status: 400 });
+    
     await prisma.bead.delete({ where: { id } });
     return Response.json({ success: true });
   } catch (e) {

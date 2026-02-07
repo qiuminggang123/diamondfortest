@@ -19,6 +19,26 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.public.blob.vercel-storage.com', // 支持动态子域名
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com', // 支持Unsplash图片
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos', // 支持Lorem Picsum
+      },
+      {
+        protocol: 'https',
+        hostname: '**.githubusercontent.com', // 支持GitHub图片
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.jsdelivr.net', // 支持jsDelivr CDN
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com', // 支持Cloudinary
+      },
     ],
     dangerouslyAllowSVG: true,  // 允许加载 SVG 图片
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;", // 限制 SVG 的执行能力

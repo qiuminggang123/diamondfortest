@@ -83,8 +83,11 @@ model Bead {
   categoryId    String
   dominantColor String?
   price         Float
+  sortOrder     Int          @default(0)  // 添加排序字段，默认值为0
   category      BeadCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   designBeads   DesignBead[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model Design {

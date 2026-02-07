@@ -73,26 +73,61 @@ export const useStore = create<AppState>()(
              useUIStore.getState().showToast('Maximum wrist size limit (25cm) reached, cannot add more beads.', 'error');
              return;
         }
-        // dominantColor优先用前端canvas同步计算
-        function getDominantColorSync(bead: any) {
-          if (bead.dominantColor) return bead.dominantColor;
-          if (bead.image && typeof window !== 'undefined') {
+        // dominantColor优先使用数据库存储的值，无效时才从图片提取
+        function getDominantColorSync(beadType: BeadType): string {
+          // 首先检查数据库中存储的dominantColor是否有效
+          if (beadType.dominantColor && beadType.dominantColor !== '#808080' && beadType.dominantColor !== '#000000') {
+            return beadType.dominantColor;
+          }
+          
+          // 如果没有有效的dominantColor，则从图片中提取
+          if(beadType.image) {
             try {
               const img = document.createElement('img');
-              img.src = bead.image;
+              img.crossOrigin = 'anonymous'; // 添加跨域支持
+              img.src = beadType.image;
+              
+              // 添加错误处理
+              img.onerror = () => {
+                console.warn('Failed to load image for color extraction:', beadType.image);
+              };
+              
               const canvas = document.createElement('canvas');
               canvas.width = 10; canvas.height = 10;
               const ctx = canvas.getContext('2d');
               if(ctx) {
-                ctx.drawImage(img, 0, 0, 10, 10);
-                const data = ctx.getImageData(0, 0, 10, 10).data;
-                let r=0,g=0,b=0;
-                for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
-                r=Math.floor(r/(data.length/4));
-                g=Math.floor(g/(data.length/4));
-                b=Math.floor(b/(data.length/4));
-                const hex = '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
-                return hex;
+                // 处理图片加载完成的情况
+                if (img.complete && img.naturalWidth !== 0) {
+                  try {
+                    ctx.drawImage(img, 0, 0, 10, 10);
+                    const data = ctx.getImageData(0, 0, 10, 10).data;
+                    let r=0,g=0,b=0;
+                    for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}
+                    r=Math.floor(r/(data.length/4));
+                    g=Math.floor(g/(data.length/4));
+                    b=Math.floor(b/(data.length/4));
+                    const hex = '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+                    return hex;
+                  } catch (canvasError) {
+                    console.warn('Canvas operation failed (possibly due to CORS):', canvasError);
+                    return '#808080'; // 返回默认颜色
+                  }
+                } else {
+                  // 图片未加载完成或加载失败，返回默认颜色
+                  // 添加加载完成的回调处理
+                  img.onload = () => {
+                    try {
+                      if (ctx) {
+                        ctx.drawImage(img, 0, 0, 10, 10);
+                        const data = ctx.getImageData(0, 0, 10, 10).data;
+                        // 这里可以更新bead的dominantColor，但由于是同步函数，我们只能返回默认值
+                      }
+                    } catch (e) {
+                      console.warn('Async color extraction failed:', e);
+                    }
+                  };
+                  return '#808080';
+                }
               }
             } catch (e) {
               console.error('Failed to get dominant color:', e);

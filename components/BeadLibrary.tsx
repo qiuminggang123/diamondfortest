@@ -199,16 +199,16 @@ export default function BeadLibrary() {
                     )}
                     onClick={() => setActiveCategory(cat.id)}
                 >
-                    <span className="w-full line-clamp-2 relative z-10">{cat.name}</span>
+                    <span className="text-[10px] w-full line-clamp-2 relative z-10">{cat.name}</span>
                     <Ripple />
                 </button>
              ))}
         </div>
 
         {/* Right Grid */}
-        <RippleArea className="flex-1 overflow-y-auto p-4 bg-gray-50/30">
+        <RippleArea className="flex-1 overflow-y-auto p-3 bg-gray-50/30">
             {isMounted ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {filteredBeads.map((bead) => (
                     <motion.div
                         role="button"
@@ -218,16 +218,16 @@ export default function BeadLibrary() {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => addBead(bead)}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') addBead(bead); }}
-                        className="bg-white rounded-xl p-2 flex flex-col items-center gap-2 shadow-sm border border-gray-100 pb-3 h-full justify-between cursor-pointer focus:outline-none focus:bg-gray-50 transition-colors"
+                        className="bg-white rounded-xl p-2 flex flex-col items-center gap-1 shadow-sm border border-gray-100 h-full justify-start cursor-pointer focus:outline-none focus:bg-gray-50 transition-colors"
                     >
                         {/* Image or Placeholder */}
                         {bead.image ? (
-                            <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative bg-transparent">
+                            <div className="w-8 h-8 shrink-0 rounded-lg overflow-hidden relative bg-transparent">
                                 <Image 
                                     src={bead.image} 
                                     alt={bead.name} 
-                                    width={48} 
-                                    height={48} 
+                                    width={32} 
+                                    height={32} 
                                     className="w-full h-full object-contain"
                                     onError={(e) => {
                                       // 如果图片加载失败，可以在这里设置默认图片
@@ -238,16 +238,15 @@ export default function BeadLibrary() {
                                 />
                             </div>
                         ) : (
-                            <div className="w-12 h-12 shrink-0 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 shadow-inner flex items-center justify-center relative overflow-hidden">
+                            <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 shadow-inner flex items-center justify-center relative overflow-hidden">
                                 {/* Faux shine */}
-                                <div className="absolute top-1 left-2 w-4 h-2 bg-white/40 rounded-full rotate-45 blur-sm" />
+                                <div className="absolute top-0.5 left-1.5 w-2.5 h-1 bg-white/40 rounded-full rotate-45 blur-sm" />
                             </div>
                         )}
                         
-                        <div className="text-center w-full min-w-0">
-                            <div className="text-xs font-bold text-gray-800 truncate w-full">{bead.name}</div>
+                        <div className="text-center w-full min-w-0 mt-1">
+                            <div className="text-[10px] text-gray-800 line-clamp-2 w-full">{bead.name}</div>
                             <div className="text-[10px] text-gray-400 truncate w-full">{bead.size}mm - £{bead.price}</div>
-
                         </div>
                     </motion.div>
                 ))}

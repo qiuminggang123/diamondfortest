@@ -19,7 +19,8 @@ import {
   Clock,
   ShoppingCart,
   Home,
-  ChevronRight
+  ChevronRight,
+  Move
 } from "lucide-react";
 import Link from "next/link";
 import { BeadType, Category } from "@/lib/types";
@@ -648,12 +649,94 @@ function AdminPage() {
                       Click cards to edit
                     </span>
                   </h2>
+                  
+                  {/* 排序控制区域 - 动态检测排序功能可用性 */}
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Move className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium text-blue-800">拖拽排序</span>
+                        <span className="text-sm text-blue-600">拖动下方珠子卡片调整显示顺序</span>
+                      </div>
+                      <button 
+                        onClick={async () => {
+                          try {
+                            showLoading({ message: '正在保存排序...' });
+                            // 获取当前显示顺序的珠子ID
+                            const beadIds = library.map(item => item.id);
+                            const response = await fetch('/api/beads', {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({ beadIds }),
+                            });
+                            
+                            if (response.ok) {
+                              showToast('排序保存成功', 'success');
+                              await refreshLibrary(); // 刷新数据
+                            } else {
+                              const errorData = await response.json();
+                              if (errorData.error?.includes('sortOrder field missing')) {
+                                showToast('排序功能暂不可用，请联系管理员', 'error');
+                              } else {
+                                showToast(errorData.error || '排序保存失败', 'error');
+                              }
+                            }
+                          } catch (error) {
+                            showToast('网络错误，排序保存失败', 'error');
+                          } finally {
+                            hideLoading();
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                      >
+                        保存排序
+                      </button>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                    {library.map((item) => (
+                    {library.map((item, index) => (
                       <div
                         key={item.id}
                         onClick={() => handleEdit(item)}
-                        className={`cursor-pointer bg-white rounded-xl shadow-sm overflow-hidden group border transition-all hover:shadow-md ${editingId === item.id ? "ring-2 ring-green-500 border-green-500 transform scale-[1.02]" : "border-gray-100 hover:border-blue-200"}`}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', item.id);
+                          e.currentTarget.style.opacity = '0.5';
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                        }}
+                        onDrop={async (e) => {
+                          e.preventDefault();
+                          const draggedId = e.dataTransfer.getData('text/plain');
+                          if (draggedId && draggedId !== item.id) {
+                            // 实现拖拽排序逻辑
+                            const draggedIndex = library.findIndex(libItem => libItem.id === draggedId);
+                            if (draggedIndex !== -1) {
+                              const newLibrary = [...library];
+                              const [draggedItem] = newLibrary.splice(draggedIndex, 1);
+                              newLibrary.splice(index, 0, draggedItem);
+                              
+                              // 更新本地状态
+                              const storeState = useStore.getState();
+                              if (typeof storeState.setLibrary === 'function') {
+                                storeState.setLibrary(newLibrary);
+                              }
+                            }
+                          }
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                        onDragEnd={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                        className={`cursor-pointer bg-white rounded-xl shadow-sm overflow-hidden group border transition-all hover:shadow-md ${
+                          editingId === item.id 
+                            ? "ring-2 ring-green-500 border-green-500 transform scale-[1.02]" 
+                            : "border-gray-100 hover:border-blue-200"
+                        }`}
                       >
                         <div className="relative aspect-square p-4 bg-gray-50 flex items-center justify-center">
                           <img
