@@ -505,7 +505,7 @@ const PixiContent = ({ width, height, userZoom = 1, rotation = 0 }: { width: num
                 anchor={0.5}
                 style={logoStyle}
                 zIndex={Z_LOGO}
-                scale={0.5} 
+                scale={0.3} 
             />
             {/* 1. BEADS和STRING整体旋转 */}
             <Container rotation={rotation}>
