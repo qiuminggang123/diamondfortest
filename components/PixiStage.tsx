@@ -186,10 +186,6 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
         state.vr += fr;
         state.vr *= damping;
         
-        if (speed > 1) {
-             state.vr += speed * 0.02 * (Math.random() > 0.5 ? 1 : -1); 
-        }
-
         state.visualRotation += state.vr * delta;
 
         // Snap to target if very close/slow
@@ -197,6 +193,8 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
              state.x = tx;
              state.y = ty;
              state.visualRotation = tr;
+             // 重置旋转速度，防止累积
+             state.vr = 0;
         }
 
         // Apply to PIXI Objects
@@ -822,14 +820,19 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
         pointerDownRef.current = false;
         lastXRef.current = null;
         let v = velocityRef.current;
+        
+        // 限制最大初始速度，防止疯狂旋转
+        const maxInitialVelocity = 0.1; // 降低最大初始速度
+        v = Math.max(Math.min(v, maxInitialVelocity), -maxInitialVelocity);
+        
         const animate = () => {
-            if (Math.abs(v) < 0.00005) return;
+            if (Math.abs(v) < 0.0001) return; // 更严格的停止条件
             rotRef.current += v;
             setRotation(rotRef.current);
-            v *= 0.92;
+            v *= 0.85; // 增加阻尼（从0.92降到0.85）
             animationIdRef.current = requestAnimationFrame(animate);
         };
-        if (Math.abs(v) > 0.00005) {
+        if (Math.abs(v) > 0.0001) { // 更严格的启动条件
             animationIdRef.current = requestAnimationFrame(animate);
         }
     };
