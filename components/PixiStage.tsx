@@ -549,15 +549,17 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
     const initialPinchDist = React.useRef<number>(0);
     const initialPinchZoom = React.useRef<number>(1);
     
-    // 手势状态管理 - 避免不同手势之间的冲突
+    // 重新设计的手势状态管理 - 严格按照用户需求
     const gestureState = React.useRef<{
-        isPinching: boolean;
-        isRotating: boolean;
-        touchCount: number;
+        isPinching: boolean;        // 是否处于双指缩放状态
+        hasTwoFingers: boolean;     // 是否曾经检测到双指触屏
+        twoFingersReleased: boolean; // 双指是否都已离开屏幕
+        touchStartTime: number;     // 触摸开始时间
     }>({
         isPinching: false,
-        isRotating: false,
-        touchCount: 0
+        hasTwoFingers: false,
+        twoFingersReleased: true,
+        touchStartTime: 0
     });
     
     React.useEffect(() => {
@@ -583,82 +585,62 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
         };
         
         const handleTouchStart = (e: TouchEvent) => {
-            gestureState.current.touchCount = e.touches.length;
+            const currentTime = Date.now();
+            gestureState.current.touchStartTime = currentTime;
             
             if (e.touches.length >= 2) {
-                // 开始双指或多指手势 - 优先识别为pinch
+                // 检测到双指或多指触屏
+                gestureState.current.hasTwoFingers = true;
+                gestureState.current.twoFingersReleased = false;
                 gestureState.current.isPinching = true;
-                gestureState.current.isRotating = false; // 禁用旋转
                 
-                // 计算初始距离
+                // 计算初始距离用于缩放
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
                 initialPinchDist.current = Math.sqrt(dx * dx + dy * dy);
                 initialPinchZoom.current = zoomRef.current;
-                e.preventDefault(); // 阻止其他手势
-                
-                // 如果有更多触摸点，也记录下来用于更复杂的识别
-                if (e.touches.length > 2) {
-                    gestureState.current.isPinching = false; // 三指及以上不处理为pinch
-                }
-            } else if (e.touches.length === 1) {
-                // 单指触摸，可能是旋转手势的开始
-                // 但要等一段时间确认不是快速的多指操作
-                const touchStartTime = Date.now();
-                setTimeout(() => {
-                    // 检查是否仍然是单指且没有开始pinch操作
-                    if (gestureState.current.touchCount === 1 && 
-                        !gestureState.current.isPinching && 
-                        Date.now() - touchStartTime > 100) { // 延长到200ms确认
-                        gestureState.current.isRotating = true;
-                    }
-                }, 200);
+                e.preventDefault();
             }
+            // 单指触屏时不立即启用旋转，等待确认
         };
         
         const handleTouchMove = (e: TouchEvent) => {
-            gestureState.current.touchCount = e.touches.length;
-            
-            // Pinch缩放优先处理
-            if (gestureState.current.isPinching && e.touches.length >= 2) {
-                e.preventDefault();
-                const dx = e.touches[0].clientX - e.touches[1].clientX;
-                const dy = e.touches[0].clientY - e.touches[1].clientY;
-                const currentDist = Math.sqrt(dx * dx + dy * dy);
-                const scaleFactor = currentDist / initialPinchDist.current;
-                const newZoom = Math.min(Math.max(initialPinchZoom.current * scaleFactor, 0.5), 3.0);
-                setUserZoom(newZoom);
-                return;
-            }
-            
-            // 如果正在进行pinch操作，阻止旋转和拖拽
-            if (gestureState.current.isPinching) {
-                e.preventDefault();
+            // 如果曾经有过双指触屏，且双指还未都离开，则禁用所有其他操作
+            if (gestureState.current.hasTwoFingers && !gestureState.current.twoFingersReleased) {
+                if (e.touches.length >= 2 && gestureState.current.isPinching) {
+                    // 双指缩放操作
+                    e.preventDefault();
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const currentDist = Math.sqrt(dx * dx + dy * dy);
+                    const scaleFactor = currentDist / initialPinchDist.current;
+                    const newZoom = Math.min(Math.max(initialPinchZoom.current * scaleFactor, 0.5), 3.0);
+                    setUserZoom(newZoom);
+                } else {
+                    // 仍有触摸点但不足两指，仍禁用其他操作
+                    e.preventDefault();
+                }
                 return;
             }
         };
         
         const handleTouchEnd = (e: TouchEvent) => {
-            gestureState.current.touchCount = e.touches.length;
-            
-            // 重置手势状态
-            if (e.touches.length === 0) {
-                // 完全释放，重置所有状态
-                gestureState.current.isPinching = false;
-                gestureState.current.isRotating = false;
-            } else if (e.touches.length === 1) {
-                // 从多指变为单指，可能是旋转开始
-                gestureState.current.isPinching = false;
-                // 延迟启动旋转，给用户时间调整手指
-                setTimeout(() => {
-                    if (gestureState.current.touchCount === 1 && e.touches.length === 1) {
-                        gestureState.current.isRotating = true;
-                    }
-                }, 150); // 增加到150ms延迟
-            } else if (e.touches.length >= 2) {
-                // 仍然有多指接触，继续保持pinch状态
-                gestureState.current.isPinching = true;
-                gestureState.current.isRotating = false;
+            if (gestureState.current.hasTwoFingers) {
+                if (e.touches.length === 0) {
+                    // 所有手指都离开了屏幕
+                    gestureState.current.twoFingersReleased = true;
+                    gestureState.current.isPinching = false;
+                    // 重置状态，为下次操作做准备
+                    setTimeout(() => {
+                        if (e.touches.length === 0) { // 确认真的没有手指了
+                            gestureState.current.hasTwoFingers = false;
+                        }
+                    }, 50);
+                } else if (e.touches.length >= 1) {
+                    // 还有手指在屏幕上，继续保持禁用状态
+                    gestureState.current.twoFingersReleased = false;
+                    gestureState.current.isPinching = false; // 停止缩放但保持禁用
+                }
             }
         };
         
@@ -676,6 +658,7 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             container.removeEventListener('touchend', handleTouchEnd);
         };
     }, []);
+    
     const [rotation, setRotation] = React.useState(0);
     const rotRef = React.useRef(0);
     const velocityRef = React.useRef(0);
@@ -708,9 +691,12 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             
             // 移动端触摸处理（需要检查手势状态）
             if ('touches' in oe) {
-                // 检查是否允许旋转（没有进行pinch操作且启用了旋转）
-                if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
-                if (oe.touches.length > 1) return; // 只允许单指
+                // 关键判断：只有当从未检测到双指，或者双指都已离开屏幕时才允许旋转
+                if (gestureState.current.hasTwoFingers && !gestureState.current.twoFingersReleased) {
+                    return; // 仍在双指操作状态中，禁止旋转
+                }
+                
+                if (oe.touches.length > 1) return; // 多指触摸不触发旋转
                 
                 pointerDownRef.current = true;
                 lastXRef.current = oe.touches[0].clientX;
@@ -745,9 +731,12 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             
             // 移动端触摸处理（需要检查手势状态）
             if ('touches' in oe) {
-                // 检查是否允许旋转
-                if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
-                if (oe.touches.length > 1) return;
+                // 关键判断：只有当从未检测到双指，或者双指都已离开屏幕时才允许旋转
+                if (gestureState.current.hasTwoFingers && !gestureState.current.twoFingersReleased) {
+                    return; // 仍在双指操作状态中，禁止旋转
+                }
+                
+                if (oe.touches.length > 1) return; // 多指触摸不触发旋转
                 
                 const clientX = oe.touches[0].clientX;
                 const now = Date.now();
