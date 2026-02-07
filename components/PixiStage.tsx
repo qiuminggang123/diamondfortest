@@ -548,6 +548,18 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
     const zoomRef = React.useRef(1);
     const initialPinchDist = React.useRef<number>(0);
     const initialPinchZoom = React.useRef<number>(1);
+    
+    // 手势状态管理 - 避免不同手势之间的冲突
+    const gestureState = React.useRef<{
+        isPinching: boolean;
+        isRotating: boolean;
+        touchCount: number;
+    }>({
+        isPinching: false,
+        isRotating: false,
+        touchCount: 0
+    });
+    
     React.useEffect(() => {
         zoomRef.current = userZoom;
     }, [userZoom]);
@@ -569,16 +581,36 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             const newZoom = Math.min(Math.max(zoomRef.current + delta, 0.5), 3.0);
             setUserZoom(newZoom);
         };
+        
         const handleTouchStart = (e: TouchEvent) => {
+            gestureState.current.touchCount = e.touches.length;
+            
             if (e.touches.length === 2) {
+                // 开始双指pinch手势
+                gestureState.current.isPinching = true;
+                gestureState.current.isRotating = false; // 禁用旋转
+                
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
                 initialPinchDist.current = Math.sqrt(dx * dx + dy * dy);
                 initialPinchZoom.current = zoomRef.current;
+                e.preventDefault(); // 阻止其他手势
+            } else if (e.touches.length === 1) {
+                // 单指触摸，可能是旋转手势的开始
+                // 但要等一段时间确认不是快速的双指操作
+                setTimeout(() => {
+                    if (gestureState.current.touchCount === 1 && !gestureState.current.isPinching) {
+                        gestureState.current.isRotating = true;
+                    }
+                }, 150); // 150ms延迟确认
             }
         };
+        
         const handleTouchMove = (e: TouchEvent) => {
-            if (e.touches.length === 2 && initialPinchDist.current > 0) {
+            gestureState.current.touchCount = e.touches.length;
+            
+            // Pinch缩放优先处理
+            if (gestureState.current.isPinching && e.touches.length === 2) {
                 e.preventDefault();
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -586,19 +618,46 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 const scaleFactor = currentDist / initialPinchDist.current;
                 const newZoom = Math.min(Math.max(initialPinchZoom.current * scaleFactor, 0.5), 3.0);
                 setUserZoom(newZoom);
+                return;
+            }
+            
+            // 如果正在进行pinch操作，阻止旋转
+            if (gestureState.current.isPinching) {
+                e.preventDefault();
+                return;
             }
         };
+        
+        const handleTouchEnd = (e: TouchEvent) => {
+            gestureState.current.touchCount = e.touches.length;
+            
+            // 重置手势状态
+            if (e.touches.length === 0) {
+                gestureState.current.isPinching = false;
+                gestureState.current.isRotating = false;
+            } else if (e.touches.length === 1) {
+                // 从双指变为单指，可能是旋转开始
+                gestureState.current.isPinching = false;
+                setTimeout(() => {
+                    if (gestureState.current.touchCount === 1 && e.touches.length === 1) {
+                        gestureState.current.isRotating = true;
+                    }
+                }, 100);
+            }
+        };
+        
         // Attach non-passive listeners to allow preventing default (scroll)
         container.addEventListener('wheel', handleWheel, { passive: false });
-        container.addEventListener('touchstart', handleTouchStart, { passive: true });
+        container.addEventListener('touchstart', handleTouchStart, { passive: false });
         container.addEventListener('touchmove', handleTouchMove, { passive: false });
-        // No Clean-up needed for touchEnd since we just reset refs implicitly on next start, 
-        // but robust logic resets might help. However, visual glitch is low risk.
+        container.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
         return () => {
             observer.disconnect();
             container.removeEventListener('wheel', handleWheel);
             container.removeEventListener('touchstart', handleTouchStart);
             container.removeEventListener('touchmove', handleTouchMove);
+            container.removeEventListener('touchend', handleTouchEnd);
         };
     }, []);
     const [rotation, setRotation] = React.useState(0);
@@ -613,6 +672,9 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
     const animationIdRef = React.useRef<number | null>(null);
     // 事件处理函数
     const handleBgPointerDown = (e: any) => {
+        // 检查是否允许旋转（没有进行pinch操作且启用了旋转）
+        if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
+        
         // 只允许鼠标左键或单指
         if (e.data && e.data.originalEvent) {
             const oe = e.data.originalEvent;
@@ -629,6 +691,8 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
         }
     };
     const handleBgPointerMove = (e: any) => {
+        // 检查是否允许旋转
+        if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
         if (!pointerDownRef.current || lastXRef.current === null) return;
         if (e.data && e.data.originalEvent) {
             const oe = e.data.originalEvent;
