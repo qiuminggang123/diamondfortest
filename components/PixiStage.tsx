@@ -672,40 +672,77 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
     const animationIdRef = React.useRef<number | null>(null);
     // 事件处理函数
     const handleBgPointerDown = (e: any) => {
-        // 检查是否允许旋转（没有进行pinch操作且启用了旋转）
-        if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
-        
-        // 只允许鼠标左键或单指
+        // 区分处理PC鼠标和移动端触摸
         if (e.data && e.data.originalEvent) {
             const oe = e.data.originalEvent;
-            if ('button' in oe && oe.button !== 0) return;
-            if ('touches' in oe && oe.touches.length > 1) return;
-            pointerDownRef.current = true;
-            lastXRef.current = 'touches' in oe ? oe.touches[0].clientX : oe.clientX;
-            velocityRef.current = 0;
-            lastMoveTimeRef.current = Date.now();
-            if (animationIdRef.current) {
-                cancelAnimationFrame(animationIdRef.current);
-                animationIdRef.current = null;
+            
+            // PC端鼠标处理（不受手势状态影响）
+            if ('button' in oe) {
+                if (oe.button !== 0) return; // 只允许左键
+                pointerDownRef.current = true;
+                lastXRef.current = oe.clientX;
+                velocityRef.current = 0;
+                lastMoveTimeRef.current = Date.now();
+                if (animationIdRef.current) {
+                    cancelAnimationFrame(animationIdRef.current);
+                    animationIdRef.current = null;
+                }
+                return;
+            }
+            
+            // 移动端触摸处理（需要检查手势状态）
+            if ('touches' in oe) {
+                // 检查是否允许旋转（没有进行pinch操作且启用了旋转）
+                if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
+                if (oe.touches.length > 1) return; // 只允许单指
+                
+                pointerDownRef.current = true;
+                lastXRef.current = oe.touches[0].clientX;
+                velocityRef.current = 0;
+                lastMoveTimeRef.current = Date.now();
+                if (animationIdRef.current) {
+                    cancelAnimationFrame(animationIdRef.current);
+                    animationIdRef.current = null;
+                }
             }
         }
     };
     const handleBgPointerMove = (e: any) => {
-        // 检查是否允许旋转
-        if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
         if (!pointerDownRef.current || lastXRef.current === null) return;
+        
         if (e.data && e.data.originalEvent) {
             const oe = e.data.originalEvent;
-            if ('touches' in oe && oe.touches.length > 1) return;
-            const clientX = 'touches' in oe ? oe.touches[0].clientX : oe.clientX;
-            const now = Date.now();
-            const deltaX = clientX - lastXRef.current;
-            const dt = Math.max(now - lastMoveTimeRef.current, 1);
-            lastMoveTimeRef.current = now;
-            lastXRef.current = clientX;
-            velocityRef.current = -deltaX * 0.006 / dt * 16.67;
-            rotRef.current -= deltaX * 0.006;
-            setRotation(rotRef.current);
+            
+            // PC端鼠标处理
+            if ('button' in oe) {
+                const clientX = oe.clientX;
+                const now = Date.now();
+                const deltaX = clientX - lastXRef.current;
+                const dt = Math.max(now - lastMoveTimeRef.current, 1);
+                lastMoveTimeRef.current = now;
+                lastXRef.current = clientX;
+                velocityRef.current = -deltaX * 0.006 / dt * 16.67;
+                rotRef.current -= deltaX * 0.006;
+                setRotation(rotRef.current);
+                return;
+            }
+            
+            // 移动端触摸处理
+            if ('touches' in oe) {
+                // 检查是否允许旋转
+                if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
+                if (oe.touches.length > 1) return;
+                
+                const clientX = oe.touches[0].clientX;
+                const now = Date.now();
+                const deltaX = clientX - lastXRef.current;
+                const dt = Math.max(now - lastMoveTimeRef.current, 1);
+                lastMoveTimeRef.current = now;
+                lastXRef.current = clientX;
+                velocityRef.current = -deltaX * 0.006 / dt * 16.67;
+                rotRef.current -= deltaX * 0.006;
+                setRotation(rotRef.current);
+            }
         }
     };
     const handleBgPointerUp = () => {
@@ -723,6 +760,7 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             animationIdRef.current = requestAnimationFrame(animate);
         }
     };
+    
     // 导出快照方法（只截取舞台内容，不含UI）
     // 用于存储Pixi Application实例
     const appRef = React.useRef<any>(null);
