@@ -549,18 +549,26 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
     const initialPinchDist = React.useRef<number>(0);
     const initialPinchZoom = React.useRef<number>(1);
     
-    // 重新设计的手势状态管理 - 严格按照用户需求
+    // 重新设计的手势状态管理 - 严格的防抖动机制
     const gestureState = React.useRef<{
         isPinching: boolean;        // 是否处于双指缩放状态
         hasTwoFingers: boolean;     // 是否曾经检测到双指触屏
         twoFingersReleased: boolean; // 双指是否都已离开屏幕
         touchStartTime: number;     // 触摸开始时间
+        lastTwoFingerTime: number;  // 最后一次双指触屏时间
+        singleTouchTimer: NodeJS.Timeout | null; // 单指触摸延时定时器
     }>({
         isPinching: false,
         hasTwoFingers: false,
         twoFingersReleased: true,
-        touchStartTime: 0
+        touchStartTime: 0,
+        lastTwoFingerTime: 0,
+        singleTouchTimer: null
     });
+    
+    // 防抖动时间配置
+    const DOUBLE_TOUCH_PROTECTION_TIME = 300; // 双指操作后的保护时间(ms)
+    const SINGLE_TOUCH_DELAY = 250; // 单指触摸确认延时(ms)
     
     React.useEffect(() => {
         zoomRef.current = userZoom;
@@ -593,6 +601,13 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 gestureState.current.hasTwoFingers = true;
                 gestureState.current.twoFingersReleased = false;
                 gestureState.current.isPinching = true;
+                gestureState.current.lastTwoFingerTime = currentTime;
+                
+                // 清除可能存在的单指延时定时器
+                if (gestureState.current.singleTouchTimer) {
+                    clearTimeout(gestureState.current.singleTouchTimer);
+                    gestureState.current.singleTouchTimer = null;
+                }
                 
                 // 计算初始距离用于缩放
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -600,8 +615,29 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 initialPinchDist.current = Math.sqrt(dx * dx + dy * dy);
                 initialPinchZoom.current = zoomRef.current;
                 e.preventDefault();
+            } else if (e.touches.length === 1) {
+                // 单指触屏，需要延时确认是否真的是单指操作
+                if (gestureState.current.singleTouchTimer) {
+                    clearTimeout(gestureState.current.singleTouchTimer);
+                }
+                
+                gestureState.current.singleTouchTimer = setTimeout(() => {
+                    // 检查是否仍在防抖动保护期内
+                    const timeSinceLastTwoFinger = currentTime - gestureState.current.lastTwoFingerTime;
+                    if (timeSinceLastTwoFinger < DOUBLE_TOUCH_PROTECTION_TIME) {
+                        // 仍在保护期内，不触发单指操作
+                        return;
+                    }
+                    
+                    // 检查是否真的只有单指且没有双指状态
+                    if (gestureState.current.hasTwoFingers && !gestureState.current.twoFingersReleased) {
+                        return;
+                    }
+                    
+                    // 确认为单指操作，可以启用旋转
+                    // 注意：这里只是确认可以旋转，实际旋转在move事件中处理
+                }, SINGLE_TOUCH_DELAY);
             }
-            // 单指触屏时不立即启用旋转，等待确认
         };
         
         const handleTouchMove = (e: TouchEvent) => {
@@ -630,12 +666,20 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                     // 所有手指都离开了屏幕
                     gestureState.current.twoFingersReleased = true;
                     gestureState.current.isPinching = false;
-                    // 重置状态，为下次操作做准备
+                    gestureState.current.lastTwoFingerTime = Date.now();
+                    
+                    // 清除单指延时定时器
+                    if (gestureState.current.singleTouchTimer) {
+                        clearTimeout(gestureState.current.singleTouchTimer);
+                        gestureState.current.singleTouchTimer = null;
+                    }
+                    
+                    // 设置延时重置状态
                     setTimeout(() => {
                         if (e.touches.length === 0) { // 确认真的没有手指了
                             gestureState.current.hasTwoFingers = false;
                         }
-                    }, 50);
+                    }, DOUBLE_TOUCH_PROTECTION_TIME);
                 } else if (e.touches.length >= 1) {
                     // 还有手指在屏幕上，继续保持禁用状态
                     gestureState.current.twoFingersReleased = false;
@@ -656,6 +700,11 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             container.removeEventListener('touchstart', handleTouchStart);
             container.removeEventListener('touchmove', handleTouchMove);
             container.removeEventListener('touchend', handleTouchEnd);
+            
+            // 清理定时器
+            if (gestureState.current.singleTouchTimer) {
+                clearTimeout(gestureState.current.singleTouchTimer);
+            }
         };
     }, []);
     
@@ -691,6 +740,12 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             
             // 移动端触摸处理（需要检查手势状态）
             if ('touches' in oe) {
+                // 防抖动检查：检查是否在双指保护期内
+                const timeSinceLastTwoFinger = Date.now() - gestureState.current.lastTwoFingerTime;
+                if (timeSinceLastTwoFinger < DOUBLE_TOUCH_PROTECTION_TIME) {
+                    return; // 仍在保护期内，禁止所有单指操作
+                }
+                
                 // 关键判断：只有当从未检测到双指，或者双指都已离开屏幕时才允许旋转
                 if (gestureState.current.hasTwoFingers && !gestureState.current.twoFingersReleased) {
                     return; // 仍在双指操作状态中，禁止旋转
@@ -731,6 +786,12 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             
             // 移动端触摸处理（需要检查手势状态）
             if ('touches' in oe) {
+                // 防抖动检查：检查是否在双指保护期内
+                const timeSinceLastTwoFinger = Date.now() - gestureState.current.lastTwoFingerTime;
+                if (timeSinceLastTwoFinger < DOUBLE_TOUCH_PROTECTION_TIME) {
+                    return; // 仍在保护期内，禁止所有单指操作
+                }
+                
                 // 关键判断：只有当从未检测到双指，或者双指都已离开屏幕时才允许旋转
                 if (gestureState.current.hasTwoFingers && !gestureState.current.twoFingersReleased) {
                     return; // 仍在双指操作状态中，禁止旋转
@@ -744,7 +805,7 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 // 添加移动距离阈值，避免轻微触摸误触发旋转
                 if (lastXRef.current !== null) {
                     const deltaX = Math.abs(clientX - lastXRef.current);
-                    if (deltaX < 5) return; // 小于5像素的移动不触发旋转
+                    if (deltaX < 8) return; // 增加到8像素阈值，防止手指摩擦抖动
                 }
                 
                 const deltaX = clientX - lastXRef.current!;
