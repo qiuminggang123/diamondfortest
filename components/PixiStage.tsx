@@ -585,24 +585,34 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
         const handleTouchStart = (e: TouchEvent) => {
             gestureState.current.touchCount = e.touches.length;
             
-            if (e.touches.length === 2) {
-                // 开始双指pinch手势
+            if (e.touches.length >= 2) {
+                // 开始双指或多指手势 - 优先识别为pinch
                 gestureState.current.isPinching = true;
                 gestureState.current.isRotating = false; // 禁用旋转
                 
+                // 计算初始距离
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
                 initialPinchDist.current = Math.sqrt(dx * dx + dy * dy);
                 initialPinchZoom.current = zoomRef.current;
                 e.preventDefault(); // 阻止其他手势
+                
+                // 如果有更多触摸点，也记录下来用于更复杂的识别
+                if (e.touches.length > 2) {
+                    gestureState.current.isPinching = false; // 三指及以上不处理为pinch
+                }
             } else if (e.touches.length === 1) {
                 // 单指触摸，可能是旋转手势的开始
-                // 但要等一段时间确认不是快速的双指操作
+                // 但要等一段时间确认不是快速的多指操作
+                const touchStartTime = Date.now();
                 setTimeout(() => {
-                    if (gestureState.current.touchCount === 1 && !gestureState.current.isPinching) {
+                    // 检查是否仍然是单指且没有开始pinch操作
+                    if (gestureState.current.touchCount === 1 && 
+                        !gestureState.current.isPinching && 
+                        Date.now() - touchStartTime > 100) { // 延长到200ms确认
                         gestureState.current.isRotating = true;
                     }
-                }, 150); // 150ms延迟确认
+                }, 200);
             }
         };
         
@@ -610,7 +620,7 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             gestureState.current.touchCount = e.touches.length;
             
             // Pinch缩放优先处理
-            if (gestureState.current.isPinching && e.touches.length === 2) {
+            if (gestureState.current.isPinching && e.touches.length >= 2) {
                 e.preventDefault();
                 const dx = e.touches[0].clientX - e.touches[1].clientX;
                 const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -621,7 +631,7 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 return;
             }
             
-            // 如果正在进行pinch操作，阻止旋转
+            // 如果正在进行pinch操作，阻止旋转和拖拽
             if (gestureState.current.isPinching) {
                 e.preventDefault();
                 return;
@@ -633,16 +643,22 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
             
             // 重置手势状态
             if (e.touches.length === 0) {
+                // 完全释放，重置所有状态
                 gestureState.current.isPinching = false;
                 gestureState.current.isRotating = false;
             } else if (e.touches.length === 1) {
-                // 从双指变为单指，可能是旋转开始
+                // 从多指变为单指，可能是旋转开始
                 gestureState.current.isPinching = false;
+                // 延迟启动旋转，给用户时间调整手指
                 setTimeout(() => {
                     if (gestureState.current.touchCount === 1 && e.touches.length === 1) {
                         gestureState.current.isRotating = true;
                     }
-                }, 100);
+                }, 150); // 增加到150ms延迟
+            } else if (e.touches.length >= 2) {
+                // 仍然有多指接触，继续保持pinch状态
+                gestureState.current.isPinching = true;
+                gestureState.current.isRotating = false;
             }
         };
         
@@ -727,7 +743,7 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 return;
             }
             
-            // 移动端触摸处理
+            // 移动端触摸处理（需要检查手势状态）
             if ('touches' in oe) {
                 // 检查是否允许旋转
                 if (gestureState.current.isPinching || !gestureState.current.isRotating) return;
@@ -735,7 +751,14 @@ export default React.forwardRef((props: { onMount?: () => void }, ref) => {
                 
                 const clientX = oe.touches[0].clientX;
                 const now = Date.now();
-                const deltaX = clientX - lastXRef.current;
+                
+                // 添加移动距离阈值，避免轻微触摸误触发旋转
+                if (lastXRef.current !== null) {
+                    const deltaX = Math.abs(clientX - lastXRef.current);
+                    if (deltaX < 5) return; // 小于5像素的移动不触发旋转
+                }
+                
+                const deltaX = clientX - lastXRef.current!;
                 const dt = Math.max(now - lastMoveTimeRef.current, 1);
                 lastMoveTimeRef.current = now;
                 lastXRef.current = clientX;
