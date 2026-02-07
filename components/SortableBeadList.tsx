@@ -64,7 +64,7 @@ function SortableBeadItem({ bead, onDelete }: SortableBeadItemProps) {
       <div className="flex-1 min-w-0">
         <div className="font-medium text-gray-900 truncate">{bead.name}</div>
         <div className="text-sm text-gray-500">
-          {bead.size}mm • £{bead.price} • {typeof bead.type === 'object' ? bead.type.name : bead.type}
+          {bead.size}mm • £{bead.price} • {bead.type}
         </div>
       </div>
       

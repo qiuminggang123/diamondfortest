@@ -59,7 +59,7 @@ export function AdminBeadManager({ beads, onRefresh }: AdminBeadManagerProps) {
   // 更新排序
   const handleUpdateSort = async (beadIds: string[]) => {
     try {
-      showLoading('正在更新排序...');
+      showLoading({ message: '正在更新排序...' });
       
       const response = await fetch('/api/beads', {
         method: 'PUT',
@@ -95,9 +95,11 @@ export function AdminBeadManager({ beads, onRefresh }: AdminBeadManagerProps) {
       }
       
       onRefresh(); // 刷新主界面数据
+      showToast('排序更新成功', 'success');
       
     } catch (error) {
       console.error('Failed to update sort:', error);
+      showToast('排序更新失败: ' + (error instanceof Error ? error.message : '未知错误'), 'error');
       throw error;
     } finally {
       hideLoading();
@@ -107,44 +109,27 @@ export function AdminBeadManager({ beads, onRefresh }: AdminBeadManagerProps) {
   // 删除珠子
   const handleDeleteBead = async (id: string) => {
     try {
-      showLoading('正在删除珠子...');
+      showLoading({ message: '正在删除珠子...' });
       
       const response = await fetch(`/api/beads/${id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete bead');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '删除珠子失败');
       }
 
-      showToast('珠子删除成功', 'success');
-      
-      // 重新加载数据
-      const refreshResponse = await fetch('/api/beads');
-      if (refreshResponse.ok) {
-        const data = await refreshResponse.json();
-        const converted = data.map((bead: any) => ({
-          id: bead.id,
-          name: bead.name,
-          image: bead.image,
-          type: bead.category?.name || bead.typeId,
-          size: bead.size,
-          price: bead.price,
-          sortOrder: bead.sortOrder
-        }));
-        
-        const sorted = converted.sort((a: any, b: any) => 
-          (a.sortOrder || 0) - (b.sortOrder || 0)
-        );
-        
-        setManagedBeads(sorted);
+      const result = await response.json();
+      if (result.success) {
+        showToast('珠子删除成功', 'success');
+        onRefresh();
+      } else {
+        throw new Error(result.error || '删除珠子失败');
       }
-      
-      onRefresh(); // 刷新主界面数据
-      
     } catch (error) {
-      console.error('Failed to delete bead:', error);
-      showToast('删除失败', 'error');
+      console.error('删除珠子错误:', error);
+      showToast('删除失败: ' + (error instanceof Error ? error.message : '未知错误'), 'error');
     } finally {
       hideLoading();
     }
