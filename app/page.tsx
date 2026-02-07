@@ -59,7 +59,7 @@ function HomePageContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div>加载中...</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <HomePageContent />
     </Suspense>
   );

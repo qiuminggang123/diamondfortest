@@ -274,7 +274,7 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
   
     return (
       <>
-        {/* SHADOW LAYER */}
+        {/* SHADOW LAYER - 使用SVG图片替代Graphics绘制 */}
         <Container
             ref={shadowContainerRef}
             zIndex={Z_SHADOW}
@@ -282,18 +282,15 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
             x={physicsState.current.x}
             y={physicsState.current.y}
         >
-            <Graphics
-                draw={drawShadow}
-                filters={filters.shadow} 
-                x={-beadRadiusPx * 0.05} 
-                y={beadRadiusPx * 0.05} 
-            />
-            <Graphics
-                draw={drawCaustic}
-                filters={filters.caustic}
-                blendMode={PIXI.BLEND_MODES.ADD}
-                x={-beadRadiusPx * 0.05} 
-                y={beadRadiusPx * 0.05} 
+            <Sprite
+                image="/images/bead-shadow.svg"
+                anchor={0.5}
+                x={-beadRadiusPx * 0.5}
+                y={beadRadiusPx * 0.5}
+                width={diameter * 1}
+                height={diameter * 1}
+                alpha={1}
+                // filters={filters.shadow}
             />
         </Container>
 
@@ -320,11 +317,17 @@ const AnimatedBead = memo(({ bead, radius, stageWidth, stageHeight, globalScale,
                         rotation={physicsState.current.visualRotation}
                     />
                     
-                    {/* Highlights - Static relative to Bead Center (Don't rotate with bead texture) */}
+                    {/* Highlights - 使用SVG图片替代Graphics绘制 */}
                     {Math.abs(aspectRatio - 1) < 0.1 && (
-                        <Graphics 
-                            draw={drawHighlight} 
-                            filters={filters.highlight}
+                        <Sprite
+                            image="/images/bead-highlight.svg"
+                            anchor={0.5}
+                            x={beadRadiusPx * 0.4}
+                            y={-beadRadiusPx * 0.4}
+                            width={diameter * 0.6}
+                            height={diameter * 0.6}
+                            alpha={0.8}
+                            // filters={filters.highlight}
                         />
                     )}
                 </Container>

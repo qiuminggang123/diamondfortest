@@ -20,7 +20,7 @@ export default function StageWrapper() {
     <div className="w-full h-[45vh] min-h-[300px] max-h-[500px] relative bg-white overflow-hidden">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-white">
-          <div className="text-gray-500">加载中...</div>
+          <div className="text-gray-500">Loading...</div>
         </div>
       )}
       <PixiStage 
